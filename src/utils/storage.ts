@@ -1,10 +1,12 @@
-import type { FoodItem, SpinHistoryEntry } from '../types';
+import type { FoodItem, SpinHistoryEntry, GroceryItem, IngredientMapping } from '../types';
 
 const STORAGE_KEYS = {
   FOOD_ITEMS: 'spin-and-eat:food-items',
   SPIN_HISTORY: 'spin-and-eat:spin-history',
   FEELING_LUCKY: 'spin-and-eat:feeling-lucky',
   ACTIVE_CATEGORIES: 'spin-and-eat:active-categories',
+  GROCERIES: 'spin-and-eat:groceries',
+  INGREDIENT_MAPPING: 'spin-and-eat:ingredient-mapping',
 } as const;
 
 export function loadFoodItems(fallback: FoodItem[]): FoodItem[] {
@@ -76,6 +78,44 @@ export function loadActiveCategories(): string[] | null {
 export function saveActiveCategories(categories: string[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_CATEGORIES, JSON.stringify(categories));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadGroceries(fallback: GroceryItem[]): GroceryItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.GROCERIES);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as GroceryItem[];
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export function saveGroceries(items: GroceryItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.GROCERIES, JSON.stringify(items));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadIngredientMapping(): IngredientMapping {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.INGREDIENT_MAPPING);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as IngredientMapping;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveIngredientMapping(mapping: IngredientMapping): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.INGREDIENT_MAPPING, JSON.stringify(mapping));
   } catch {
     // ignore
   }
