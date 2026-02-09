@@ -1,0 +1,1 @@
+export { FoodWheel } from './FoodWheel';
