@@ -57,6 +57,37 @@
   white-space: nowrap;
 }
 
+.loginCtaButton,
+.ghostAuthButton {
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.loginCtaButton {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  box-shadow: 0 4px 10px rgba(230, 57, 70, 0.25);
+}
+
+.loginCtaButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(230, 57, 70, 0.35);
+}
+
+.ghostAuthButton {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text);
+}
+
+.ghostAuthButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
 .logoutButton {
   border: none;
   border-radius: var(--radius-full);
@@ -111,6 +142,17 @@
 .loginSection {
   display: flex;
   justify-content: center;
+}
+
+.profileSection {
+  display: flex;
+  justify-content: center;
+}
+
+.profileActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .loginCard {
@@ -264,6 +306,7 @@
 .tabButtonActive {
   color: var(--color-text);
 }
+
 
 .tabIcon {
   width: 1.4rem;

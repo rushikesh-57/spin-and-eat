@@ -1,4 +1,4 @@
-import type { FoodItem, SpinHistoryEntry, GroceryItem, IngredientMapping } from '../types';
+import type { FoodItem, SpinHistoryEntry, GroceryItem, GroceryStatus } from '../types';
 
 const STORAGE_KEYS = {
   FOOD_ITEMS: 'spin-and-eat:food-items',
@@ -6,7 +6,6 @@ const STORAGE_KEYS = {
   FEELING_LUCKY: 'spin-and-eat:feeling-lucky',
   ACTIVE_CATEGORIES: 'spin-and-eat:active-categories',
   GROCERIES: 'spin-and-eat:groceries',
-  INGREDIENT_MAPPING: 'spin-and-eat:ingredient-mapping',
 } as const;
 
 export function loadFoodItems(fallback: FoodItem[]): FoodItem[] {
@@ -88,7 +87,11 @@ export function loadGroceries(fallback: GroceryItem[]): GroceryItem[] {
     const raw = localStorage.getItem(STORAGE_KEYS.GROCERIES);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as GroceryItem[];
-    return Array.isArray(parsed) ? parsed : fallback;
+    if (!Array.isArray(parsed)) return fallback;
+    return parsed.map((item) => ({
+      ...item,
+      status: normalizeStatus((item as GroceryItem & { available?: boolean }).status, item),
+    }));
   } catch {
     return fallback;
   }
@@ -102,21 +105,8 @@ export function saveGroceries(items: GroceryItem[]): void {
   }
 }
 
-export function loadIngredientMapping(): IngredientMapping {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.INGREDIENT_MAPPING);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as IngredientMapping;
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-export function saveIngredientMapping(mapping: IngredientMapping): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS.INGREDIENT_MAPPING, JSON.stringify(mapping));
-  } catch {
-    // ignore
-  }
-}
+const normalizeStatus = (status: GroceryStatus | undefined, item: GroceryItem & { available?: boolean }) => {
+  if (status === 'available' || status === 'low' || status === 'out') return status;
+  if (typeof item.available === 'boolean') return item.available ? 'available' : 'out';
+  return 'available';
+};

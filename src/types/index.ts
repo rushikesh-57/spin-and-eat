@@ -17,17 +17,10 @@ export interface GroceryItem {
   name: string;
   quantity: number;
   unit: string;
-  available: boolean;
+  status: GroceryStatus;
 }
 
-export interface IngredientRequirement {
-  id: string;
-  name: string;
-  quantity: number;
-  unit: string;
-}
-
-export type IngredientMapping = Record<string, IngredientRequirement[]>;
+export type GroceryStatus = 'available' | 'low' | 'out';
 
 export const FOOD_CATEGORIES: Record<FoodCategory, string> = {
   veg: 'Veg',
