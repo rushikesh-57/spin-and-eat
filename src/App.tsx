@@ -11,16 +11,29 @@ import { CategoryFilter } from './components/CategoryFilter';
 import { FoodManager } from './components/FoodManager';
 import { SpinHistory } from './components/SpinHistory';
 import { Kitchen } from './components/Kitchen/Kitchen';
+import { AppHeader } from './components/layout/AppHeader';
+import { TabBar } from './components/layout/TabBar';
+import { LoginScreen } from './components/layout/LoginScreen';
+import { ProfilePanel } from './components/layout/ProfilePanel';
 import { playSpinCompleteSound } from './utils/sound';
 import { supabase } from './lib/supabaseClient';
 import styles from './App.module.css';
 
+const THEME_STORAGE_KEY = 'spin-eat-theme';
+
 function App() {
   const [userName, setUserName] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'spin' | 'kitchen'>('spin');
+  const [activeTab, setActiveTab] = useState<'spin' | 'kitchen' | 'profile'>('spin');
   const [showLogin, setShowLogin] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === 'light' || stored === 'dark') {
+      return stored;
+    }
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const food = useFoodItems();
   const kitchen = useGroceryInventory();
   const history = useSpinHistory();
@@ -87,6 +100,15 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }, [theme]);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   const handleLogin = useCallback(async () => {
     setAuthError(null);
     const { error } = await supabase.auth.signInWithOAuth({
@@ -109,91 +131,82 @@ function App() {
 
   const showAuthPage = !isLoggedIn && (showLogin || activeTab !== 'spin');
 
+  const handleTabChange = useCallback(
+    (tab: 'spin' | 'kitchen' | 'profile') => {
+      setActiveTab(tab);
+      setShowProfile(false);
+      if ((tab === 'kitchen' || tab === 'profile') && !isLoggedIn) {
+        setShowLogin(true);
+        return;
+      }
+      setShowLogin(false);
+    },
+    [isLoggedIn]
+  );
+
+  const handleProfileClick = useCallback(() => {
+    if (isLoggedIn) {
+      setActiveTab('profile');
+      setShowProfile(true);
+      setShowLogin(false);
+      return;
+    }
+    setShowLogin(true);
+    setActiveTab('spin');
+  }, [isLoggedIn]);
+
   return (
     <div className={styles.app}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Spin &amp; Eat</h1>
-        <p className={styles.tagline}>Let the wheel decide what to eat</p>
-        <div className={styles.authRow}>
-          {isLoggedIn ? (
-            <>
-              <span className={styles.signedInAs}>Welcome {userName}</span>
-              <button
-                type="button"
-                className={styles.ghostAuthButton}
-                onClick={() => {
-                  setShowProfile((prev) => !prev);
-                  setShowLogin(false);
-                }}
-              >
-                Profile
-              </button>
-              <button type="button" className={styles.logoutButton} onClick={handleLogout}>
-                Log out
-              </button>
-            </>
-          ) : !showAuthPage ? (
-            <button
-              type="button"
-              className={styles.loginCtaButton}
-              onClick={() => {
-                setShowLogin(true);
-                setShowProfile(false);
-              }}
-            >
-              Log in
-            </button>
-          ) : null}
-        </div>
-      </header>
+      <AppHeader
+        isLoggedIn={isLoggedIn}
+        userName={userName}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onLoginClick={() => {
+          setShowLogin(true);
+          setShowProfile(false);
+        }}
+        onProfileClick={handleProfileClick}
+        onLogout={handleLogout}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+      />
 
       <main className={styles.main}>
         {showAuthPage ? (
-          <section className={styles.loginSection} aria-label="Login">
-            <div className={styles.loginCard}>
-              <h2 className={styles.loginTitle}>Sign in to Spin &amp; Eat</h2>
-              <p className={styles.loginTagline}>
-                Use Google to start spinning and saving history.
-              </p>
-              <div className={styles.loginForm}>
-                <button type="button" className={styles.loginButton} onClick={handleLogin}>
-                  Continue with Google
-                </button>
-              </div>
-              <p className={styles.loginNote}>
-                {authError
-                  ? `Sign-in failed: ${authError}`
-                  : 'You will be redirected to Google to complete sign-in.'}
-              </p>
-              <button
-                type="button"
-                className={styles.ghostAuthButton}
-                onClick={() => {
-                  setShowLogin(false);
-                  setActiveTab('spin');
-                }}
-              >
-                Back to Spin
-              </button>
-            </div>
-          </section>
+          <LoginScreen
+            authError={authError}
+            onLogin={handleLogin}
+            onBack={() => {
+              setShowLogin(false);
+              setActiveTab('spin');
+            }}
+          />
         ) : (
           <>
             {activeTab === 'spin' ? (
-              <>
+              <div className={styles.spinLayout}>
                 <section
-                  className={styles.wheelSection}
+                  className={styles.spinPanel}
                   aria-labelledby="wheel-heading"
                   aria-label="Food wheel"
                 >
-                  <h2 id="wheel-heading" className={styles.srOnly}>
-                    Food wheel
-                  </h2>
-                  <FoodWheel
-                    items={food.filteredItems}
-                    rotation={rotation}
-                    aria-label={`Wheel with ${food.filteredItems.length} food options`}
-                  />
+                  <div className={styles.panelHeader}>
+                    <div>
+                      <h2 id="wheel-heading" className={styles.panelTitle}>
+                        Spin the wheel
+                      </h2>
+                      <p className={styles.panelSubtitle}>Let randomness pick the meal.</p>
+                    </div>
+                    <span className={styles.panelBadge}>Live</span>
+                  </div>
+                  <div className={styles.wheelWrap}>
+                    <FoodWheel
+                      items={food.filteredItems}
+                      rotation={rotation}
+                      aria-label={`Wheel with ${food.filteredItems.length} food options`}
+                    />
+                  </div>
                   <div className={styles.spinRow}>
                     <SpinButton
                       onClick={handleSpin}
@@ -204,7 +217,8 @@ function App() {
                   <ResultDisplay item={selectedItem} isSpinning={isSpinning} />
                 </section>
 
-                <div className={styles.controls}>
+                <section className={styles.controlsPanel} aria-label="Filters and food list">
+                  <h2 className={styles.panelTitle}>Plan your options</h2>
                   <CategoryFilter
                     activeCategories={food.activeCategories}
                     onToggle={handleCategoryToggle}
@@ -218,93 +232,50 @@ function App() {
                     onRemove={food.removeItem}
                     onReset={food.resetToSample}
                   />
+                </section>
 
+                <section className={styles.historyPanel} aria-label="Recent spins">
                   <SpinHistory history={history.history} onClear={history.clearHistory} />
-                </div>
-              </>
-            ) : (
-              <Kitchen
-                groceries={kitchen.items}
-                onAddGrocery={kitchen.addItem}
-                onUpdateGrocery={kitchen.updateItem}
-                onRemoveGrocery={kitchen.removeItem}
-              />
-            )}
-
-            {showProfile && isLoggedIn ? (
-              <section className={styles.profileSection} aria-label="Profile">
-                <div className={styles.loginCard}>
-                  <h2 className={styles.loginTitle}>Profile</h2>
-                  <p className={styles.loginTagline}>Welcome {userName}</p>
-                  <div className={styles.profileActions}>
-                    <button type="button" className={styles.logoutButton} onClick={handleLogout}>
-                      Log out
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.ghostAuthButton}
-                      onClick={() => setShowProfile(false)}
-                    >
-                      Close
-                    </button>
+                </section>
+              </div>
+            ) : activeTab === 'kitchen' ? (
+              <section className={styles.kitchenPanel} aria-label="Kitchen inventory">
+                <div className={styles.panelHeader}>
+                  <div>
+                    <h2 className={styles.panelTitle}>Kitchen inventory</h2>
+                    <p className={styles.panelSubtitle}>Track what you already have at home.</p>
                   </div>
                 </div>
+                <Kitchen
+                  groceries={kitchen.items}
+                  onAddGrocery={kitchen.addItem}
+                  onUpdateGrocery={kitchen.updateItem}
+                  onRemoveGrocery={kitchen.removeItem}
+                />
               </section>
-            ) : null}
+            ) : (
+              <ProfilePanel
+                userName={userName}
+                onLogout={handleLogout}
+                onClose={() => setActiveTab('spin')}
+                theme={theme}
+                onToggleTheme={handleToggleTheme}
+              />
+            )}
           </>
         )}
       </main>
 
       <footer className={styles.footer}>
-        <p>Spin &amp; Eat � Decide what to eat with a spin</p>
+        <p>Spin &amp; Eat - Decide what to eat with a spin</p>
       </footer>
+
       {!showAuthPage ? (
-        <nav className={styles.tabBar} aria-label="Primary">
-          <button
-            type="button"
-            className={
-              activeTab === 'spin' ? `${styles.tabButton} ${styles.tabButtonActive}` : styles.tabButton
-            }
-            onClick={() => setActiveTab('spin')}
-            aria-current={activeTab === 'spin' ? 'page' : undefined}
-          >
-            <span className={styles.tabIcon} aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="presentation">
-                <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
-                <path d="M12 3v9l6 3" fill="none" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            </span>
-            <span className={styles.tabLabel}>Spin</span>
-          </button>
-          <button
-            type="button"
-            className={
-              activeTab === 'kitchen'
-                ? `${styles.tabButton} ${styles.tabButtonActive}`
-                : styles.tabButton
-            }
-            onClick={() => {
-              setActiveTab('kitchen');
-              if (!isLoggedIn) {
-                setShowLogin(true);
-              }
-            }}
-            aria-current={activeTab === 'kitchen' ? 'page' : undefined}
-          >
-            <span className={styles.tabIcon} aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="presentation">
-                <path
-                  d="M5 7h14v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7z"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <path d="M7 7V5h10v2" fill="none" stroke="currentColor" strokeWidth="2" />
-              </svg>
-            </span>
-            <span className={styles.tabLabel}>Kitchen</span>
-          </button>
-        </nav>
+        <TabBar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onProfileClick={handleProfileClick}
+        />
       ) : null}
     </div>
   );

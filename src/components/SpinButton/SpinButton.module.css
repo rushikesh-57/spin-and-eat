@@ -12,12 +12,12 @@
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 14px rgba(230, 57, 70, 0.4);
+  box-shadow: var(--shadow-soft);
 }
 
 .button:hover:not(:disabled) {
   transform: scale(1.02);
-  box-shadow: 0 6px 20px rgba(230, 57, 70, 0.5);
+  box-shadow: var(--shadow-strong);
 }
 
 .button:active:not(:disabled) {

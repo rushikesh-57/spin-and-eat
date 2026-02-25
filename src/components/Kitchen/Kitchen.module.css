@@ -30,10 +30,10 @@
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface-muted);
   border-radius: var(--radius-lg);
   padding: var(--space-md);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px var(--color-border);
 }
 
 .formRow {
@@ -47,14 +47,14 @@
   width: 100%;
   padding: 0.65rem 0.75rem;
   border-radius: 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text);
   font-size: 0.9rem;
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(71, 85, 105, 0.7);
 }
 
 .input:focus-visible {
@@ -77,16 +77,16 @@
 .primaryButton {
   background: var(--color-accent);
   color: var(--color-bg);
-  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.35);
+  box-shadow: var(--shadow-soft);
 }
 
 .primaryButton:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(230, 57, 70, 0.45);
+  box-shadow: var(--shadow-strong);
 }
 
 .ghostButton {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
   color: var(--color-text);
 }
 
@@ -95,8 +95,8 @@
 }
 
 .dangerButton {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
 }
 
 .dangerButton:hover:not(:disabled) {
@@ -117,7 +117,8 @@
   gap: var(--space-sm);
   padding: 0.6rem;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 }
 
 .itemInfo {
@@ -151,8 +152,8 @@
   width: 100%;
   padding: 0.65rem 0.75rem;
   border-radius: 0.7rem;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text);
   font-size: 0.9rem;
 }
@@ -172,8 +173,8 @@
 .groupCard {
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-border);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -192,14 +193,14 @@
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-surface-muted);
   color: var(--color-text);
   transition: transform 0.15s ease, background 0.2s ease;
 }
 
 .groupToggle:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--color-border);
 }
 
 .groupContent {
@@ -234,18 +235,18 @@
 }
 
 .statusavailable {
-  background: rgba(34, 197, 94, 0.2);
-  color: #86efac;
+  background: rgba(34, 197, 94, 0.15);
+  color: #15803d;
 }
 
 .statuslow {
-  background: rgba(234, 179, 8, 0.2);
-  color: #fde68a;
+  background: rgba(234, 179, 8, 0.15);
+  color: #a16207;
 }
 
 .statusout {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
 }
 
 @media (max-width: 640px) {

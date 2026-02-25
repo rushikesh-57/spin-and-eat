@@ -72,8 +72,8 @@
   padding: 0.5rem 0.75rem;
   font-size: 0.95rem;
   color: var(--color-text);
-  background: var(--color-bg);
-  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   transition: border-color 0.15s ease;
 }
@@ -87,8 +87,8 @@
   padding: 0.5rem 0.75rem;
   font-size: 0.95rem;
   color: var(--color-text);
-  background: var(--color-bg);
-  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
 }

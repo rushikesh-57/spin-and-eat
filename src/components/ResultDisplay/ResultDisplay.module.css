@@ -33,7 +33,7 @@
 
 .result {
   border-color: var(--color-accent);
-  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(230, 57, 70, 0.08) 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(249, 115, 22, 0.12) 100%);
   animation: resultPop 0.4s ease-out;
 }
 
