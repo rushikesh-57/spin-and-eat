@@ -89,26 +89,16 @@ function App() {
 
   const handleLogin = useCallback(async () => {
     setAuthError(null);
-    const redirectTo = new URL('/auth/callback', window.location.origin).toString();
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo,
-        skipBrowserRedirect: true,
+        redirectTo: window.location.origin,
       },
     });
 
     if (error) {
       setAuthError(error.message);
-      return;
     }
-
-    if (!data?.url) {
-      setAuthError('No OAuth redirect URL returned.');
-      return;
-    }
-
-    window.location.assign(data.url);
   }, []);
 
   const handleLogout = useCallback(async () => {
