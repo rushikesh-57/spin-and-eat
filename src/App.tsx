@@ -192,7 +192,6 @@ function App() {
                   <FoodWheel
                     items={food.filteredItems}
                     rotation={rotation}
-                    isSpinning={isSpinning}
                     aria-label={`Wheel with ${food.filteredItems.length} food options`}
                   />
                   <div className={styles.spinRow}>

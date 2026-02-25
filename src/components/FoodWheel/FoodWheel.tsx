@@ -9,11 +9,10 @@ const RADIUS = SIZE / 2;
 interface FoodWheelProps {
   items: FoodItem[];
   rotation: number;
-  isSpinning: boolean;
   'aria-label'?: string;
 }
 
-export function FoodWheel({ items, rotation, isSpinning, 'aria-label': ariaLabel }: FoodWheelProps) {
+export function FoodWheel({ items, rotation, 'aria-label': ariaLabel }: FoodWheelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
