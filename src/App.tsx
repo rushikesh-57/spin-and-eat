@@ -25,7 +25,6 @@ function App() {
   const [userName, setUserName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'spin' | 'kitchen' | 'profile'>('spin');
   const [showLogin, setShowLogin] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
@@ -89,7 +88,6 @@ function App() {
       setUserName(nextName);
       if (nextName) {
         setShowLogin(false);
-        setShowProfile(false);
         setAuthError(null);
       }
     });
@@ -134,7 +132,6 @@ function App() {
   const handleTabChange = useCallback(
     (tab: 'spin' | 'kitchen' | 'profile') => {
       setActiveTab(tab);
-      setShowProfile(false);
       if ((tab === 'kitchen' || tab === 'profile') && !isLoggedIn) {
         setShowLogin(true);
         return;
@@ -147,7 +144,6 @@ function App() {
   const handleProfileClick = useCallback(() => {
     if (isLoggedIn) {
       setActiveTab('profile');
-      setShowProfile(true);
       setShowLogin(false);
       return;
     }
@@ -164,7 +160,6 @@ function App() {
         onTabChange={handleTabChange}
         onLoginClick={() => {
           setShowLogin(true);
-          setShowProfile(false);
         }}
         onProfileClick={handleProfileClick}
         onLogout={handleLogout}
