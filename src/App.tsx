@@ -123,7 +123,6 @@ function App() {
 
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
-    setShowProfile(false);
     setActiveTab('spin');
   }, []);
 
