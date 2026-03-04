@@ -1,4 +1,4 @@
-export type FoodCategory = 'veg' | 'non-veg' | 'healthy' | 'cheat-meal';
+export type FoodCategory = 'breakfast' | 'lunch' | 'dinner' | 'snacks';
 
 export interface FoodItem {
   id: string;
@@ -15,7 +15,8 @@ export interface SpinHistoryEntry {
 export interface GroceryItem {
   id: string;
   name: string;
-  quantity: number;
+  orderedQuantity: number;
+  remainingQuantity: number;
   unit: string;
   status: GroceryStatus;
 }
@@ -23,8 +24,8 @@ export interface GroceryItem {
 export type GroceryStatus = 'available' | 'low' | 'out';
 
 export const FOOD_CATEGORIES: Record<FoodCategory, string> = {
-  veg: 'Veg',
-  'non-veg': 'Non-Veg',
-  healthy: 'Healthy',
-  'cheat-meal': 'Cheat Meal',
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snacks: 'Snacks',
 } as const;

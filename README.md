@@ -6,7 +6,7 @@ A responsive web app that helps you decide what to eat using a spinning wheel. B
 
 - **Spinning wheel** — Food options displayed on a colorful SVG wheel with smooth spin animation
 - **Random selection** — One option is randomly selected when the wheel stops
-- **Categories** — Veg, Non-Veg, Healthy, Cheat Meal; filter which categories appear on the wheel
+- **Categories** — Breakfast, Lunch, Dinner, Snacks; filter which categories appear on the wheel
 - **Manage items** — Add, edit, and remove food items with category
 - **Result display** — Selected food shown clearly with animation; optional sound on spin complete
 - **Spin history** — Last 5 spins saved and shown (persisted in local storage)
@@ -20,6 +20,7 @@ A responsive web app that helps you decide what to eat using a spinning wheel. B
 - **Vite 7** (build tool)
 - **SVG** for the wheel (no Canvas)
 - **CSS Modules** for component styles
+- **Supabase** for user food lists
 - **Local storage** for preferences and history
 
 ## Project Structure
@@ -27,7 +28,7 @@ A responsive web app that helps you decide what to eat using a spinning wheel. B
 ```
 src/
 ├── components/
-│   ├── CategoryFilter/   # Veg / Non-Veg / Healthy / Cheat Meal toggles
+│   ├── CategoryFilter/   # Breakfast / Lunch / Dinner / Snacks toggles
 │   ├── FoodManager/      # Add, edit, remove food items
 │   ├── FoodWheel/        # SVG wheel + pointer
 │   ├── ResultDisplay/    # Selected food + animation
@@ -93,17 +94,21 @@ npm run preview
 npm run lint
 ```
 
+### Supabase schema
+
+Run the SQL in `docs/foods.sql` and `docs/groceries.sql` to create the tables and RLS policies for user-owned lists.
+
 ## Usage
 
 1. **Spin** — Click “Spin Now 🍽️” (or focus and press Enter/Space) to spin the wheel. The wheel spins for about 4 seconds and stops on a random food.
-2. **Filter** — Use the category chips (Veg, Non-Veg, Healthy, Cheat Meal) to include or exclude categories on the wheel.
-3. **Manage items** — Expand “Manage food items” to add new foods (with category), edit names/categories, or remove items. “Reset to sample list” restores the default list.
+2. **Filter** — Use the category chips (Breakfast, Lunch, Dinner, Snacks) to include or exclude categories on the wheel.
+3. **Manage items** — Expand “My Foods” to add new foods (with category), edit names/categories, or remove items. “Reset to sample list” restores the default list.
 4. **Feeling Lucky** — Enable “Feeling Lucky (auto-spin on load)” to spin automatically when you open the app.
 5. **History** — “Last 5 spins” shows recent results; “Clear” removes the history.
 
 ## Sample Data
 
-The app ships with 10 sample foods across categories: Pizza, Dosa, Burger, Salad, Biryani, Pasta, Grilled Chicken, Smoothie Bowl, Tacos, Dal Rice. You can change or reset this via “Manage food items.”
+The app ships with 10 sample foods across breakfast, lunch, dinner, and snacks. You can change or reset this via “My Foods.”
 
 ## Browser Support
 

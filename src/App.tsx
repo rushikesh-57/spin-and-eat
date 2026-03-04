@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
 import type { FoodCategory } from './types';
+import { FOOD_CATEGORIES } from './types';
 import { useFoodItems } from './hooks/useFoodItems';
 import { useSpinHistory } from './hooks/useSpinHistory';
 import { useWheelSpin } from './hooks/useWheelSpin';
@@ -23,6 +24,7 @@ const THEME_STORAGE_KEY = 'spin-eat-theme';
 
 function App() {
   const [userName, setUserName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'spin' | 'kitchen' | 'profile'>('spin');
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -33,8 +35,8 @@ function App() {
     }
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
-  const food = useFoodItems();
-  const kitchen = useGroceryInventory();
+  const food = useFoodItems(userId);
+  const kitchen = useGroceryInventory(userId);
   const history = useSpinHistory();
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(food.filteredItems);
   const isLoggedIn = Boolean(userName);
@@ -59,6 +61,11 @@ function App() {
     },
     [food.activeCategories, food.setActiveCategories]
   );
+
+  const handleSelectAllCategories = useCallback(() => {
+    const allCategories = Object.keys(FOOD_CATEGORIES) as FoodCategory[];
+    food.setActiveCategories(allCategories);
+  }, [food.setActiveCategories]);
 
   useEffect(() => {
     let isMounted = true;
@@ -86,6 +93,8 @@ function App() {
         user?.email ||
         null;
       setUserName(nextName);
+      setUserId(user?.id ?? null);
+      setUserId(user?.id ?? null);
       if (nextName) {
         setShowLogin(false);
         setAuthError(null);
@@ -216,6 +225,7 @@ function App() {
                   <CategoryFilter
                     activeCategories={food.activeCategories}
                     onToggle={handleCategoryToggle}
+                    onSelectAll={handleSelectAllCategories}
                     aria-label="Filter wheel by category"
                   />
 

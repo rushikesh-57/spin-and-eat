@@ -11,14 +11,14 @@ interface FoodManagerProps {
   onReset: () => void;
 }
 
-const CATEGORY_IDS: FoodCategory[] = ['veg', 'non-veg', 'healthy', 'cheat-meal'];
+const CATEGORY_IDS: FoodCategory[] = ['breakfast', 'lunch', 'dinner', 'snacks'];
 
 export function FoodManager({ items, onAdd, onUpdate, onRemove, onReset }: FoodManagerProps) {
   const [newName, setNewName] = useState('');
-  const [newCategory, setNewCategory] = useState<FoodCategory>('veg');
+  const [newCategory, setNewCategory] = useState<FoodCategory>('breakfast');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [editCategory, setEditCategory] = useState<FoodCategory>('veg');
+  const [editCategory, setEditCategory] = useState<FoodCategory>('breakfast');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleAdd = useCallback(
@@ -28,7 +28,7 @@ export function FoodManager({ items, onAdd, onUpdate, onRemove, onReset }: FoodM
       if (!name) return;
       onAdd(name, newCategory);
       setNewName('');
-      setNewCategory('veg');
+      setNewCategory('breakfast');
     },
     [newName, newCategory, onAdd]
   );
@@ -69,7 +69,7 @@ export function FoodManager({ items, onAdd, onUpdate, onRemove, onReset }: FoodM
         aria-controls="food-manager-content"
         id="food-manager-heading"
       >
-        Manage food items
+        My Foods
         <span className={styles.toggleIcon} aria-hidden="true">
           {isExpanded ? '−' : '+'}
         </span>
@@ -105,7 +105,7 @@ export function FoodManager({ items, onAdd, onUpdate, onRemove, onReset }: FoodM
             ))}
           </select>
           <button type="submit" className={styles.addBtn} disabled={!newName.trim()}>
-            Add
+            Add Food
           </button>
         </form>
 

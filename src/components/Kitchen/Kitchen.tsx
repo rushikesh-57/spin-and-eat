@@ -11,8 +11,9 @@ type Props = {
 
 const defaultNewItem = {
   name: '',
-  quantity: 1,
-  unit: '',
+  orderedQuantity: 1,
+  remainingQuantity: 1,
+  unit: 'kg',
   status: 'available' as GroceryStatus,
 };
 
@@ -23,6 +24,7 @@ const STATUS_LABELS: Record<GroceryStatus, string> = {
 };
 
 const STATUS_ORDER: GroceryStatus[] = ['available', 'low', 'out'];
+const UNIT_OPTIONS = ['kg', 'g', 'ml', 'L', 'pcs', 'packs', 'jar', 'bunch', 'units'] as const;
 
 const CATEGORY_DEFINITIONS = [
   {
@@ -202,6 +204,16 @@ const getNextStatus = (status: GroceryStatus) => {
   return STATUS_ORDER[(index + 1) % STATUS_ORDER.length];
 };
 
+const applyStatusToRemaining = (
+  status: GroceryStatus,
+  orderedQuantity: number,
+  currentRemaining: number
+) => {
+  if (status === 'low') return Number((orderedQuantity * 0.2).toFixed(2));
+  if (status === 'out') return 0;
+  return currentRemaining;
+};
+
 export function Kitchen({
   groceries,
   onAddGrocery,
@@ -229,7 +241,8 @@ export function Kitchen({
     setEditingId(item.id);
     setEditDraft({
       name: item.name,
-      quantity: item.quantity,
+      orderedQuantity: item.orderedQuantity,
+      remainingQuantity: item.remainingQuantity,
       unit: item.unit,
       status: item.status,
     });
@@ -238,9 +251,15 @@ export function Kitchen({
   const handleSaveEdit = () => {
     if (!editingId) return;
     if (!editDraft.name.trim()) return;
+    const nextRemaining = applyStatusToRemaining(
+      editDraft.status,
+      editDraft.orderedQuantity,
+      editDraft.remainingQuantity
+    );
     onUpdateGrocery(editingId, {
       name: editDraft.name.trim(),
-      quantity: editDraft.quantity,
+      orderedQuantity: editDraft.orderedQuantity,
+      remainingQuantity: nextRemaining,
       unit: editDraft.unit.trim(),
       status: editDraft.status,
     });
@@ -251,7 +270,12 @@ export function Kitchen({
     if (!newItem.name.trim()) return;
     onAddGrocery({
       name: newItem.name.trim(),
-      quantity: newItem.quantity,
+      orderedQuantity: newItem.orderedQuantity,
+      remainingQuantity: applyStatusToRemaining(
+        newItem.status,
+        newItem.orderedQuantity,
+        newItem.remainingQuantity
+      ),
       unit: newItem.unit.trim(),
       status: newItem.status,
     });
@@ -288,18 +312,43 @@ export function Kitchen({
               type="number"
               min="0"
               step="0.1"
-              placeholder="Qty"
-              value={Number.isNaN(newItem.quantity) ? '' : newItem.quantity}
-              onChange={(event) =>
-                setNewItem((prev) => ({ ...prev, quantity: Number(event.target.value) }))
-              }
+              placeholder="Ordered"
+              value={Number.isNaN(newItem.orderedQuantity) ? '' : newItem.orderedQuantity}
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                setNewItem((prev) => ({
+                  ...prev,
+                  orderedQuantity: nextValue,
+                  remainingQuantity:
+                    prev.remainingQuantity > nextValue ? nextValue : prev.remainingQuantity,
+                }));
+              }}
             />
             <input
               className={styles.input}
-              placeholder="Unit"
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="Remaining"
+              value={Number.isNaN(newItem.remainingQuantity) ? '' : newItem.remainingQuantity}
+              onChange={(event) =>
+                setNewItem((prev) => ({
+                  ...prev,
+                  remainingQuantity: Number(event.target.value),
+                }))
+              }
+            />
+            <select
+              className={styles.select}
               value={newItem.unit}
               onChange={(event) => setNewItem((prev) => ({ ...prev, unit: event.target.value }))}
-            />
+            >
+              {UNIT_OPTIONS.map((unit) => (
+                <option key={unit} value={unit}>
+                  {unit}
+                </option>
+              ))}
+            </select>
             <select
               className={styles.select}
               value={newItem.status}
@@ -370,17 +419,40 @@ export function Kitchen({
                                         min="0"
                                         step="0.1"
                                         value={
-                                          Number.isNaN(editDraft.quantity) ? '' : editDraft.quantity
+                                          Number.isNaN(editDraft.orderedQuantity)
+                                            ? ''
+                                            : editDraft.orderedQuantity
                                         }
                                         onChange={(event) =>
                                           setEditDraft((prev) => ({
                                             ...prev,
-                                            quantity: Number(event.target.value),
+                                            orderedQuantity: Number(event.target.value),
+                                            remainingQuantity:
+                                              prev.remainingQuantity > Number(event.target.value)
+                                                ? Number(event.target.value)
+                                                : prev.remainingQuantity,
                                           }))
                                         }
                                       />
                                       <input
                                         className={styles.input}
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        value={
+                                          Number.isNaN(editDraft.remainingQuantity)
+                                            ? ''
+                                            : editDraft.remainingQuantity
+                                        }
+                                        onChange={(event) =>
+                                          setEditDraft((prev) => ({
+                                            ...prev,
+                                            remainingQuantity: Number(event.target.value),
+                                          }))
+                                        }
+                                      />
+                                      <select
+                                        className={styles.select}
                                         value={editDraft.unit}
                                         onChange={(event) =>
                                           setEditDraft((prev) => ({
@@ -388,7 +460,13 @@ export function Kitchen({
                                             unit: event.target.value,
                                           }))
                                         }
-                                      />
+                                      >
+                                        {UNIT_OPTIONS.map((unit) => (
+                                          <option key={unit} value={unit}>
+                                            {unit}
+                                          </option>
+                                        ))}
+                                      </select>
                                       <select
                                         className={styles.select}
                                         value={editDraft.status}
@@ -427,17 +505,24 @@ export function Kitchen({
                                       <div className={styles.itemInfo}>
                                         <div className={styles.itemName}>{item.name}</div>
                                         <div className={styles.itemMeta}>
-                                          {item.quantity} {item.unit || 'units'}
+                                          {item.remainingQuantity} / {item.orderedQuantity}{' '}
+                                          {item.unit || 'units'}
                                         </div>
                                       </div>
                                       <button
                                         type="button"
                                         className={`${styles.statusPill} ${styles[`status${item.status}`]}`}
-                                        onClick={() =>
+                                        onClick={() => {
+                                          const nextStatus = getNextStatus(item.status);
                                           onUpdateGrocery(item.id, {
-                                            status: getNextStatus(item.status),
-                                          })
-                                        }
+                                            status: nextStatus,
+                                            remainingQuantity: applyStatusToRemaining(
+                                              nextStatus,
+                                              item.orderedQuantity,
+                                              item.remainingQuantity
+                                            ),
+                                          });
+                                        }}
                                       >
                                         {STATUS_LABELS[item.status]}
                                       </button>

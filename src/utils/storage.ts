@@ -91,6 +91,18 @@ export function loadGroceries(fallback: GroceryItem[]): GroceryItem[] {
     return parsed.map((item) => ({
       ...item,
       status: normalizeStatus((item as GroceryItem & { available?: boolean }).status, item),
+      orderedQuantity:
+        typeof (item as GroceryItem & { orderedQuantity?: number }).orderedQuantity === 'number'
+          ? (item as GroceryItem).orderedQuantity
+          : typeof (item as GroceryItem & { quantity?: number }).quantity === 'number'
+            ? (item as GroceryItem & { quantity: number }).quantity
+            : 0,
+      remainingQuantity:
+        typeof (item as GroceryItem & { remainingQuantity?: number }).remainingQuantity === 'number'
+          ? (item as GroceryItem).remainingQuantity
+          : typeof (item as GroceryItem & { quantity?: number }).quantity === 'number'
+            ? (item as GroceryItem & { quantity: number }).quantity
+            : 0,
     }));
   } catch {
     return fallback;
