@@ -245,7 +245,7 @@ export function useGroceryInventory(userId: string | null) {
         return;
       }
 
-      const payload: Record<string, string | number> = {};
+      const payload: Record<string, string | number | null> = {};
       if (typeof updates.name === 'string') {
         const trimmed = updates.name.trim();
         if (!trimmed) return;
