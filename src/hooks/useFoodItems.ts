@@ -1,13 +1,19 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import type { FoodItem, FoodCategory } from '../types';
-import { FOOD_CATEGORIES } from '../types';
+import type { FoodItem, FoodCategory, FoodSource } from '../types';
+import { FOOD_CATEGORIES, FOOD_SOURCES } from '../types';
 import { SAMPLE_FOODS } from '../data/sampleFoods';
-import { loadFoodItems, saveFoodItems } from '../utils/storage';
+import {
+  loadFoodItems,
+  saveFoodItems,
+  loadActiveSource,
+  saveActiveSource,
+} from '../utils/storage';
 import { loadActiveCategories, saveActiveCategories } from '../utils/storage';
 import { generateId } from '../utils/id';
 import { supabase } from '../lib/supabaseClient';
 
 const CATEGORY_IDS = Object.keys(FOOD_CATEGORIES) as FoodCategory[];
+const SOURCE_IDS = Object.keys(FOOD_SOURCES) as FoodSource[];
 
 const sanitizeCategories = (categories: string[] | null): FoodCategory[] | null => {
   if (!categories) return null;
@@ -17,8 +23,16 @@ const sanitizeCategories = (categories: string[] | null): FoodCategory[] | null 
   return filtered.length > 0 ? filtered : null;
 };
 
+const normalizeSource = (source: FoodSource | string | undefined): FoodSource =>
+  SOURCE_IDS.includes(source as FoodSource) ? (source as FoodSource) : 'home';
+
 const sanitizeItems = (items: FoodItem[]): FoodItem[] =>
-  items.filter((item) => CATEGORY_IDS.includes(item.category));
+  items
+    .filter((item) => CATEGORY_IDS.includes(item.category))
+    .map((item) => ({
+      ...item,
+      source: normalizeSource((item as FoodItem & { source?: FoodSource }).source),
+    }));
 
 export function useFoodItems(userId: string | null) {
   const [items, setItems] = useState<FoodItem[]>(() =>
@@ -27,6 +41,10 @@ export function useFoodItems(userId: string | null) {
   const [activeCategories, setActiveCategoriesState] = useState<FoodCategory[] | null>(() =>
     sanitizeCategories(loadActiveCategories())
   );
+  const [activeSource, setActiveSourceState] = useState<FoodSource>(() => {
+    const stored = loadActiveSource();
+    return SOURCE_IDS.includes(stored as FoodSource) ? (stored as FoodSource) : 'home';
+  });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,7 +69,7 @@ export function useFoodItems(userId: string | null) {
       setError(null);
       const { data, error: fetchError } = await supabase
         .from('foods')
-        .select('id, food_name, category')
+        .select('id, food_name, category, source')
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
 
@@ -69,6 +87,7 @@ export function useFoodItems(userId: string | null) {
             id: String(row.id),
             name: row.food_name as string,
             category: row.category as FoodCategory,
+            source: normalizeSource(row.source as FoodSource | undefined),
           }))
           .filter((item) => CATEGORY_IDS.includes(item.category)) ?? [];
 
@@ -84,28 +103,39 @@ export function useFoodItems(userId: string | null) {
   }, [userId]);
 
   const activeCategoriesList = activeCategories ?? CATEGORY_IDS;
-  const filteredItems = items.filter((item) => activeCategoriesList.includes(item.category));
+  const filteredItems = items.filter(
+    (item) =>
+      activeCategoriesList.includes(item.category) && item.source === activeSource
+  );
 
   const setActiveCategories = useCallback((categories: FoodCategory[]) => {
     setActiveCategoriesState(categories);
     saveActiveCategories(categories);
   }, []);
 
+  const setActiveSource = useCallback((source: FoodSource) => {
+    setActiveSourceState(source);
+    saveActiveSource(source);
+  }, []);
+
   const addItem = useCallback(
-    async (name: string, category: FoodCategory) => {
+    async (name: string, category: FoodCategory, source: FoodSource) => {
       const trimmed = name.trim();
       if (!trimmed) return;
 
       if (!userId) {
-        setItems((prev) => [...prev, { id: generateId(), name: trimmed, category }]);
+        setItems((prev) => [
+          ...prev,
+          { id: generateId(), name: trimmed, category, source },
+        ]);
         return;
       }
 
       setError(null);
       const { data, error: insertError } = await supabase
         .from('foods')
-        .insert({ user_id: userId, food_name: trimmed, category })
-        .select('id, food_name, category')
+        .insert({ user_id: userId, food_name: trimmed, category, source })
+        .select('id, food_name, category, source')
         .single();
 
       if (insertError) {
@@ -116,7 +146,12 @@ export function useFoodItems(userId: string | null) {
       if (data) {
         setItems((prev) => [
           ...prev,
-          { id: String(data.id), name: data.food_name as string, category: data.category as FoodCategory },
+          {
+            id: String(data.id),
+            name: data.food_name as string,
+            category: data.category as FoodCategory,
+            source: normalizeSource(data.source as FoodSource | undefined),
+          },
         ]);
       }
     },
@@ -124,7 +159,10 @@ export function useFoodItems(userId: string | null) {
   );
 
   const updateItem = useCallback(
-    async (id: string, updates: Partial<Pick<FoodItem, 'name' | 'category'>>) => {
+    async (
+      id: string,
+      updates: Partial<Pick<FoodItem, 'name' | 'category' | 'source'>>
+    ) => {
       if (!userId) {
         setItems((prev) =>
           prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
@@ -132,7 +170,8 @@ export function useFoodItems(userId: string | null) {
         return;
       }
 
-      const payload: { food_name?: string; category?: FoodCategory } = {};
+      const payload: { food_name?: string; category?: FoodCategory; source?: FoodSource } =
+        {};
       if (typeof updates.name === 'string') {
         const trimmed = updates.name.trim();
         if (!trimmed) return;
@@ -140,6 +179,9 @@ export function useFoodItems(userId: string | null) {
       }
       if (updates.category) {
         payload.category = updates.category;
+      }
+      if (updates.source) {
+        payload.source = updates.source;
       }
       if (Object.keys(payload).length === 0) return;
 
@@ -149,7 +191,7 @@ export function useFoodItems(userId: string | null) {
         .update(payload)
         .eq('id', id)
         .eq('user_id', userId)
-        .select('id, food_name, category')
+        .select('id, food_name, category, source')
         .single();
 
       if (updateError) {
@@ -161,7 +203,12 @@ export function useFoodItems(userId: string | null) {
         setItems((prev) =>
           prev.map((item) =>
             item.id === id
-              ? { id: String(data.id), name: data.food_name as string, category: data.category as FoodCategory }
+              ? {
+                  id: String(data.id),
+                  name: data.food_name as string,
+                  category: data.category as FoodCategory,
+                  source: normalizeSource(data.source as FoodSource | undefined),
+                }
               : item
           )
         );
@@ -194,6 +241,22 @@ export function useFoodItems(userId: string | null) {
     [userId]
   );
 
+  const clearAll = useCallback(async () => {
+    if (!userId) {
+      setItems([]);
+      return;
+    }
+
+    setError(null);
+    const { error: deleteError } = await supabase.from('foods').delete().eq('user_id', userId);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+
+    setItems([]);
+  }, [userId]);
+
   const resetToSample = useCallback(async () => {
     if (!userId) {
       setItems(SAMPLE_FOODS);
@@ -211,12 +274,13 @@ export function useFoodItems(userId: string | null) {
       user_id: userId,
       food_name: item.name,
       category: item.category,
+      source: item.source,
     }));
 
     const { data, error: insertError } = await supabase
       .from('foods')
       .insert(payload)
-      .select('id, food_name, category');
+      .select('id, food_name, category, source');
 
     if (insertError) {
       setError(insertError.message);
@@ -229,6 +293,7 @@ export function useFoodItems(userId: string | null) {
           id: String(row.id),
           name: row.food_name as string,
           category: row.category as FoodCategory,
+          source: normalizeSource(row.source as FoodSource | undefined),
         }))
         .filter((item) => CATEGORY_IDS.includes(item.category)) ?? [];
 
@@ -239,10 +304,13 @@ export function useFoodItems(userId: string | null) {
     items,
     filteredItems,
     activeCategories: activeCategoriesList,
+    activeSource,
     setActiveCategories,
+    setActiveSource,
     addItem,
     updateItem,
     removeItem,
+    clearAll,
     resetToSample,
     isLoading,
     error,

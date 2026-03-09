@@ -1,26 +1,87 @@
-import type { GroceryItem } from '../types';
+import type { GroceryFrequency, GroceryItem } from '../types';
 
-export const SAMPLE_GROCERIES: GroceryItem[] = [
+const WEEKLY_HINTS = [
+  'milk',
+  'curd',
+  'dahi',
+  'paneer',
+  'cheese',
+  'butter',
+  'cream',
+  'buttermilk',
+  'egg',
+  'eggs',
+  'tomato',
+  'onion',
+  'potato',
+  'banana',
+  'apple',
+  'mango',
+  'orange',
+  'pomegranate',
+  'papaya',
+  'grapes',
+  'guava',
+  'spinach',
+  'palak',
+  'methi',
+  'garlic',
+  'ginger',
+  'green chilli',
+  'coriander leaves',
+  'curry leaves',
+  'cauliflower',
+  'brinjal',
+  'cabbage',
+  'capsicum',
+  'beans',
+  'carrot',
+  'chicken',
+  'mutton',
+  'fish',
+  'prawn',
+];
+
+const ADHOC_HINTS = [
+  'chips',
+  'namkeen',
+  'biscuit',
+  'cookie',
+  'chocolate',
+  'ready-to-eat',
+  'dry fruits',
+  'makhana',
+  'peanuts',
+];
+
+const inferFrequency = (name: string): GroceryFrequency => {
+  const normalized = name.trim().toLowerCase();
+  if (WEEKLY_HINTS.some((hint) => normalized.includes(hint))) return 'weekly';
+  if (ADHOC_HINTS.some((hint) => normalized.includes(hint))) return 'adhoc';
+  return 'monthly';
+};
+
+const BASE_GROCERIES: Omit<GroceryItem, 'frequency'>[] = [
   { id: 'g1', name: 'Atta (whole wheat flour)', orderedQuantity: 2,
   remainingQuantity: 2, unit: 'kg', status: 'available' },
   { id: 'g2', name: 'Toor dal', orderedQuantity: 0.5,
-  remainingQuantity: 0.5, unit: 'kg', status: 'low' },
+  remainingQuantity: 0.5, unit: 'kg', status: 'available' },
   { id: 'g3', name: 'Basmati rice', orderedQuantity: 1,
   remainingQuantity: 1, unit: 'kg', status: 'available' },
   { id: 'g4', name: 'Tomato', orderedQuantity: 4,
-  remainingQuantity: 4, unit: 'pcs', status: 'low' },
+  remainingQuantity: 4, unit: 'pcs', status: 'available' },
   { id: 'g5', name: 'Onion', orderedQuantity: 1,
   remainingQuantity: 1, unit: 'kg', status: 'available' },
   { id: 'g6', name: 'Milk', orderedQuantity: 1,
   remainingQuantity: 1, unit: 'L', status: 'available' },
   { id: 'g7', name: 'Curd (dahi)', orderedQuantity: 0.5,
-  remainingQuantity: 0.5, unit: 'kg', status: 'out' },
+  remainingQuantity: 0.5, unit: 'kg', status: 'available' },
   { id: 'g8', name: 'Ghee', orderedQuantity: 250,
-  remainingQuantity: 250, unit: 'ml', status: 'low' },
+  remainingQuantity: 250, unit: 'ml', status: 'available' },
   { id: 'g9', name: 'Coriander powder', orderedQuantity: 100,
   remainingQuantity: 100, unit: 'g', status: 'available' },
   { id: 'g10', name: 'Chicken', orderedQuantity: 500,
-  remainingQuantity: 500, unit: 'g', status: 'out' },
+  remainingQuantity: 500, unit: 'g', status: 'available' },
   { id: 'g11', name: 'Eggs', orderedQuantity: 6,
   remainingQuantity: 6, unit: 'pcs', status: 'available' },
   { id: 'g12', name: 'Namkeen', orderedQuantity: 2,
@@ -220,3 +281,8 @@ export const SAMPLE_GROCERIES: GroceryItem[] = [
   { id: 'g106', name: 'Chocolate', orderedQuantity: 2,
   remainingQuantity: 2, unit: 'packs', status: 'available' },
 ];
+
+export const SAMPLE_GROCERIES: GroceryItem[] = BASE_GROCERIES.map((item) => ({
+  ...item,
+  frequency: inferFrequency(item.name),
+}));

@@ -6,12 +6,14 @@ create table if not exists public.groceries (
   remaining_quantity double precision not null default 0,
   unit text not null,
   status text not null check (status in ('available', 'low', 'out')),
+  category_id text,
   created_at timestamptz not null default now()
 );
 
 alter table public.groceries
   add column if not exists ordered_quantity double precision not null default 0,
-  add column if not exists remaining_quantity double precision not null default 0;
+  add column if not exists remaining_quantity double precision not null default 0,
+  add column if not exists category_id text;
 
 alter table public.groceries enable row level security;
 

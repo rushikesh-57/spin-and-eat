@@ -1,14 +1,14 @@
 import type { FoodItem } from '../types';
 
 export const SAMPLE_FOODS: FoodItem[] = [
-  { id: '1', name: 'Pancakes', category: 'breakfast' },
-  { id: '2', name: 'Dosa', category: 'breakfast' },
-  { id: '3', name: 'Salad Bowl', category: 'lunch' },
-  { id: '4', name: 'Biryani', category: 'lunch' },
-  { id: '5', name: 'Grilled Chicken', category: 'dinner' },
-  { id: '6', name: 'Pasta', category: 'dinner' },
-  { id: '7', name: 'Fruit Chaat', category: 'snacks' },
-  { id: '8', name: 'Samosa', category: 'snacks' },
-  { id: '9', name: 'Veg Wrap', category: 'lunch' },
-  { id: '10', name: 'Omelette', category: 'breakfast' },
+  { id: '1', name: 'Pancakes', category: 'breakfast', source: 'home' },
+  { id: '2', name: 'Dosa', category: 'breakfast', source: 'home' },
+  { id: '3', name: 'Salad Bowl', category: 'lunch', source: 'home' },
+  { id: '4', name: 'Biryani', category: 'lunch', source: 'outside' },
+  { id: '5', name: 'Grilled Chicken', category: 'dinner', source: 'home' },
+  { id: '6', name: 'Pasta', category: 'dinner', source: 'home' },
+  { id: '7', name: 'Fruit Chaat', category: 'snacks', source: 'home' },
+  { id: '8', name: 'Samosa', category: 'snacks', source: 'outside' },
+  { id: '9', name: 'Veg Wrap', category: 'lunch', source: 'outside' },
+  { id: '10', name: 'Omelette', category: 'breakfast', source: 'home' },
 ];

@@ -4,6 +4,7 @@ import { SAMPLE_GROCERIES } from '../data/sampleGroceries';
 import { generateId } from '../utils/id';
 import { loadGroceries, saveGroceries } from '../utils/storage';
 import { supabase } from '../lib/supabaseClient';
+import { getCategoryId } from '../utils/groceryCategories';
 
 type GroceryRow = {
   id: string;
@@ -12,6 +13,8 @@ type GroceryRow = {
   remaining_quantity: number | string;
   unit: string;
   status: GroceryItem['status'];
+  frequency?: GroceryItem['frequency'] | null;
+  category_id?: string | null;
 };
 
 const mapRowToItem = (row: GroceryRow): GroceryItem => ({
@@ -21,6 +24,8 @@ const mapRowToItem = (row: GroceryRow): GroceryItem => ({
   remainingQuantity: Number(row.remaining_quantity) || 0,
   unit: row.unit,
   status: row.status,
+  frequency: row.frequency ?? 'monthly',
+  categoryId: row.category_id ?? undefined,
 });
 
 const applyStatusToRemaining = (
@@ -59,7 +64,9 @@ export function useGroceryInventory(userId: string | null) {
       setError(null);
       const { data, error: fetchError } = await supabase
         .from('groceries')
-        .select('id, name, ordered_quantity, remaining_quantity, unit, status')
+        .select(
+          'id, name, ordered_quantity, remaining_quantity, unit, status, frequency, category_id'
+        )
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
 
@@ -79,35 +86,43 @@ export function useGroceryInventory(userId: string | null) {
             Number(row.ordered_quantity) === 0 && Number(row.remaining_quantity) === 0
         );
 
-      if (!hasRows || isLegacyZero) {
-        if (hasRows) {
-          const { error: clearError } = await supabase
-            .from('groceries')
-            .delete()
-            .eq('user_id', userId);
+      if (!hasRows) {
+        setItems([]);
+        setIsLoading(false);
+        return;
+      }
 
-          if (!isMounted) return;
+      if (isLegacyZero) {
+        const { error: clearError } = await supabase
+          .from('groceries')
+          .delete()
+          .eq('user_id', userId);
 
-          if (clearError) {
-            setError(clearError.message);
-            setIsLoading(false);
-            return;
-          }
+        if (!isMounted) return;
+
+        if (clearError) {
+          setError(clearError.message);
+          setIsLoading(false);
+          return;
         }
 
         const payload = SAMPLE_GROCERIES.map((item) => ({
           user_id: userId,
           name: item.name,
           ordered_quantity: item.orderedQuantity,
-          remaining_quantity: item.orderedQuantity,
+          remaining_quantity: item.remainingQuantity,
           unit: item.unit,
           status: item.status,
+          frequency: item.frequency,
+          category_id: item.categoryId ?? getCategoryId(item.name),
         }));
 
         const { data: seeded, error: seedError } = await supabase
           .from('groceries')
           .insert(payload)
-          .select('id, name, ordered_quantity, remaining_quantity, unit, status');
+          .select(
+            'id, name, ordered_quantity, remaining_quantity, unit, status, frequency, category_id'
+          );
 
         if (!isMounted) return;
 
@@ -126,6 +141,28 @@ export function useGroceryInventory(userId: string | null) {
       const mapped = data.map(mapRowToItem);
       setItems(mapped);
       setIsLoading(false);
+
+      try {
+        const backfillKey = `spin-and-eat:groceries-category-backfill:${userId}`;
+        const alreadyBackfilled = localStorage.getItem(backfillKey) === 'true';
+        if (!alreadyBackfilled) {
+          const missing = data.filter((row) => !row.category_id);
+          if (missing.length > 0) {
+            await Promise.all(
+              missing.map((row) =>
+                supabase
+                  .from('groceries')
+                  .update({ category_id: getCategoryId(row.name) })
+                  .eq('id', row.id)
+                  .eq('user_id', userId)
+              )
+            );
+          }
+          localStorage.setItem(backfillKey, 'true');
+        }
+      } catch {
+        // ignore backfill errors
+      }
     };
 
     void loadUserGroceries();
@@ -159,8 +196,12 @@ export function useGroceryInventory(userId: string | null) {
           ),
           unit: item.unit,
           status: item.status,
+          frequency: item.frequency,
+          category_id: item.categoryId ?? getCategoryId(trimmedName),
         })
-        .select('id, name, ordered_quantity, remaining_quantity, unit, status')
+        .select(
+          'id, name, ordered_quantity, remaining_quantity, unit, status, frequency, category_id'
+        )
         .single();
 
       if (insertError) {
@@ -169,7 +210,7 @@ export function useGroceryInventory(userId: string | null) {
       }
 
       if (data) {
-        setItems((prev) => [...prev, mapRowToItem(data)]);
+        setItems((prev) => [...prev, { ...mapRowToItem(data), categoryId: item.categoryId }]);
       }
     },
     [userId]
@@ -214,6 +255,10 @@ export function useGroceryInventory(userId: string | null) {
       if (typeof updates.remainingQuantity === 'number') payload.remaining_quantity = updates.remainingQuantity;
       if (typeof updates.unit === 'string') payload.unit = updates.unit;
       if (updates.status) payload.status = updates.status;
+      if (updates.frequency) payload.frequency = updates.frequency;
+      if (typeof updates.categoryId === 'string' || updates.categoryId === undefined) {
+        payload.category_id = updates.categoryId ?? null;
+      }
 
       if (Object.keys(payload).length === 0) return;
 
@@ -242,7 +287,9 @@ export function useGroceryInventory(userId: string | null) {
         .update(payload)
         .eq('id', id)
         .eq('user_id', userId)
-        .select('id, name, ordered_quantity, remaining_quantity, unit, status')
+        .select(
+          'id, name, ordered_quantity, remaining_quantity, unit, status, frequency, category_id'
+        )
         .single();
 
       if (updateError) {
@@ -251,7 +298,11 @@ export function useGroceryInventory(userId: string | null) {
       }
 
       if (data) {
-        const mapped = mapRowToItem(data);
+        const existingCategory = items.find((item) => item.id === id)?.categoryId;
+        const mapped = {
+          ...mapRowToItem(data),
+          categoryId: updates.categoryId ?? existingCategory,
+        };
         setItems((prev) => prev.map((item) => (item.id === id ? mapped : item)));
       }
       return;
@@ -283,11 +334,77 @@ export function useGroceryInventory(userId: string | null) {
     [userId]
   );
 
+  const clearAll = useCallback(async () => {
+    if (!userId) {
+      setItems([]);
+      return;
+    }
+
+    setError(null);
+    const { error: deleteError } = await supabase
+      .from('groceries')
+      .delete()
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+
+    setItems([]);
+  }, [userId]);
+
+  const resetToSample = useCallback(async () => {
+    if (!userId) {
+      setItems(SAMPLE_GROCERIES);
+      return;
+    }
+
+    setError(null);
+    const { error: deleteError } = await supabase
+      .from('groceries')
+      .delete()
+      .eq('user_id', userId);
+
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+
+    const payload = SAMPLE_GROCERIES.map((item) => ({
+      user_id: userId,
+      name: item.name,
+      ordered_quantity: item.orderedQuantity,
+      remaining_quantity: item.remainingQuantity,
+      unit: item.unit,
+      status: item.status,
+      frequency: item.frequency,
+      category_id: item.categoryId ?? getCategoryId(item.name),
+    }));
+
+    const { data, error: insertError } = await supabase
+      .from('groceries')
+      .insert(payload)
+      .select(
+        'id, name, ordered_quantity, remaining_quantity, unit, status, frequency, category_id'
+      );
+
+    if (insertError) {
+      setError(insertError.message);
+      return;
+    }
+
+    const mapped = (data ?? []).map(mapRowToItem);
+    setItems(mapped);
+  }, [userId]);
+
   return {
     items,
     addItem,
     updateItem,
     removeItem,
+    clearAll,
+    resetToSample,
     isLoading,
     error,
   };

@@ -17,6 +17,7 @@ import { TabBar } from './components/layout/TabBar';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { ProfilePanel } from './components/layout/ProfilePanel';
 import { playSpinCompleteSound } from './utils/sound';
+import { loadOnboardingChoice, saveOnboardingChoice } from './utils/storage';
 import { supabase } from './lib/supabaseClient';
 import styles from './App.module.css';
 
@@ -28,6 +29,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<'spin' | 'kitchen' | 'profile'>('spin');
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
@@ -159,6 +161,47 @@ function App() {
     setActiveTab('spin');
   }, [isLoggedIn]);
 
+  useEffect(() => {
+    if (!userId) {
+      setShowOnboarding(false);
+      return;
+    }
+
+    const storedChoice = loadOnboardingChoice(userId);
+    if (storedChoice) {
+      setShowOnboarding(false);
+      return;
+    }
+
+    if (food.isLoading || kitchen.isLoading) {
+      return;
+    }
+
+    const hasFood = food.items.length > 0;
+    const hasGroceries = kitchen.items.length > 0;
+    if (hasFood || hasGroceries) {
+      saveOnboardingChoice(userId, 'done');
+      setShowOnboarding(false);
+      return;
+    }
+
+    setShowOnboarding(true);
+  }, [userId, food.isLoading, kitchen.isLoading, food.items.length, kitchen.items.length]);
+
+  const handleUseDefaultLists = useCallback(async () => {
+    if (!userId) return;
+    saveOnboardingChoice(userId, 'default');
+    setShowOnboarding(false);
+    await food.resetToSample();
+    await kitchen.resetToSample();
+  }, [userId, food.resetToSample, kitchen.resetToSample]);
+
+  const handleStartCustomLists = useCallback(() => {
+    if (!userId) return;
+    saveOnboardingChoice(userId, 'custom');
+    setShowOnboarding(false);
+  }, [userId]);
+
   return (
     <div className={styles.app}>
       <AppHeader
@@ -187,6 +230,32 @@ function App() {
           />
         ) : (
           <>
+            {showOnboarding ? (
+              <section className={styles.onboardingCard} aria-label="Get started">
+                <div>
+                  <h2 className={styles.onboardingTitle}>Start with a default list?</h2>
+                  <p className={styles.onboardingText}>
+                    We can load a starter set of foods and groceries for you, or you can build your own list from scratch.
+                  </p>
+                </div>
+                <div className={styles.onboardingActions}>
+                  <button
+                    type="button"
+                    className={styles.onboardingPrimary}
+                    onClick={handleUseDefaultLists}
+                  >
+                    Use default list
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.onboardingSecondary}
+                    onClick={handleStartCustomLists}
+                  >
+                    Create my own
+                  </button>
+                </div>
+              </section>
+            ) : null}
             {activeTab === 'spin' ? (
               <div className={styles.spinLayout}>
                 <section
@@ -231,9 +300,12 @@ function App() {
 
                   <FoodManager
                     items={food.items}
+                    activeSource={food.activeSource}
+                    onSourceChange={food.setActiveSource}
                     onAdd={food.addItem}
                     onUpdate={food.updateItem}
                     onRemove={food.removeItem}
+                    onClearAll={food.clearAll}
                     onReset={food.resetToSample}
                   />
                 </section>
@@ -244,17 +316,13 @@ function App() {
               </div>
             ) : activeTab === 'kitchen' ? (
               <section className={styles.kitchenPanel} aria-label="Kitchen inventory">
-                <div className={styles.panelHeader}>
-                  <div>
-                    <h2 className={styles.panelTitle}>Kitchen inventory</h2>
-                    <p className={styles.panelSubtitle}>Track what you already have at home.</p>
-                  </div>
-                </div>
                 <Kitchen
                   groceries={kitchen.items}
                   onAddGrocery={kitchen.addItem}
                   onUpdateGrocery={kitchen.updateItem}
                   onRemoveGrocery={kitchen.removeItem}
+                  onClearGroceries={kitchen.clearAll}
+                  onResetGrocery={kitchen.resetToSample}
                 />
               </section>
             ) : (

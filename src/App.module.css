@@ -112,6 +112,58 @@
   justify-content: center;
 }
 
+.onboardingCard {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(14, 165, 233, 0.12)),
+    var(--color-surface);
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.onboardingTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.onboardingText {
+  margin: 0.35rem 0 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+}
+
+.onboardingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.onboardingPrimary,
+.onboardingSecondary {
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.onboardingPrimary {
+  background: #f97316;
+  color: #1f1f1f;
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.25);
+}
+
+.onboardingSecondary {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
 .footer {
   margin-top: auto;
   padding: 0 1rem 1.5rem;
@@ -145,6 +197,10 @@
   .spinPanel,
   .controlsPanel,
   .kitchenPanel {
+    padding: 1.75rem;
+  }
+
+  .onboardingCard {
     padding: 1.75rem;
   }
 }

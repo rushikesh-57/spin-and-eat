@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import type { GroceryItem, GroceryStatus } from '../../types';
+import type { GroceryFrequency, GroceryItem, GroceryStatus } from '../../types';
+import { CATEGORY_SECTIONS, getCategoryId } from '../../utils/groceryCategories';
 import styles from './Kitchen.module.css';
 
 type Props = {
@@ -7,6 +8,8 @@ type Props = {
   onAddGrocery: (item: Omit<GroceryItem, 'id'>) => void;
   onUpdateGrocery: (id: string, updates: Partial<Omit<GroceryItem, 'id'>>) => void;
   onRemoveGrocery: (id: string) => void;
+  onClearGroceries: () => void;
+  onResetGrocery: () => void;
 };
 
 const defaultNewItem = {
@@ -15,6 +18,8 @@ const defaultNewItem = {
   remainingQuantity: 1,
   unit: 'kg',
   status: 'available' as GroceryStatus,
+  frequency: 'weekly' as GroceryFrequency,
+  categoryId: undefined as string | undefined,
 };
 
 const STATUS_LABELS: Record<GroceryStatus, string> = {
@@ -24,185 +29,13 @@ const STATUS_LABELS: Record<GroceryStatus, string> = {
 };
 
 const STATUS_ORDER: GroceryStatus[] = ['available', 'low', 'out'];
+const FREQUENCY_ORDER: GroceryFrequency[] = ['weekly', 'monthly', 'adhoc'];
+const FREQUENCY_LABELS: Record<GroceryFrequency, string> = {
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  adhoc: 'Ad hoc',
+};
 const UNIT_OPTIONS = ['kg', 'g', 'ml', 'L', 'pcs', 'packs', 'jar', 'bunch', 'units'] as const;
-
-const CATEGORY_DEFINITIONS = [
-  {
-    id: 'fresh',
-    title: 'Fruits & Vegetables',
-    keywords: [
-      'tomato',
-      'onion',
-      'potato',
-      'banana',
-      'apple',
-      'mango',
-      'orange',
-      'pomegranate',
-      'papaya',
-      'grapes',
-      'guava',
-      'spinach',
-      'palak',
-      'methi',
-      'garlic',
-      'ginger',
-      'green chilli',
-      'coriander leaves',
-      'curry leaves',
-      'cauliflower',
-      'brinjal',
-      'cabbage',
-      'capsicum',
-      'beans',
-      'carrot',
-    ],
-  },
-  {
-    id: 'atta',
-    title: 'Atta, Rice & Dal',
-    keywords: [
-      'atta',
-      'flour',
-      'maida',
-      'suji',
-      'rava',
-      'besan',
-      'multigrain',
-      'rice',
-      'basmati',
-      'sona',
-      'kolam',
-      'brown rice',
-      'idli rice',
-      'broken rice',
-      'jowar',
-      'bajra',
-      'ragi',
-      'millet',
-      'dal',
-      'lentil',
-      'toor',
-      'urad',
-      'moong',
-      'masoor',
-      'chana',
-      'rajma',
-      'kabuli',
-      'kala',
-      'lobia',
-      'matki',
-    ],
-  },
-  {
-    id: 'dairy',
-    title: 'Dairy & Breakfast',
-    keywords: [
-      'milk',
-      'curd',
-      'dahi',
-      'paneer',
-      'cheese',
-      'butter',
-      'cream',
-      'buttermilk',
-      'bread',
-      'egg',
-      'eggs',
-    ],
-  },
-  {
-    id: 'masala',
-    title: 'Masala, Oil & Pantry',
-    keywords: [
-      'masala',
-      'spice',
-      'whole spices',
-      'mirchi',
-      'chilli',
-      'turmeric',
-      'haldi',
-      'cumin',
-      'jeera',
-      'coriander powder',
-      'bay leaf',
-      'cinnamon',
-      'clove',
-      'cardamom',
-      'pepper',
-      'fennel',
-      'fenugreek',
-      'hing',
-      'mustard seeds',
-      'oil',
-      'ghee',
-      'salt',
-      'sugar',
-      'jaggery',
-    ],
-  },
-  {
-    id: 'snacks',
-    title: 'Snacks & Beverages',
-    keywords: [
-      'namkeen',
-      'chips',
-      'biscuit',
-      'cookie',
-      'noodles',
-      'maggi',
-      'pasta',
-      'vermicelli',
-      'pickles',
-      'papad',
-      'sauce',
-      'ready-to-eat',
-      'oats',
-      'cornflakes',
-      'dry fruits',
-      'peanuts',
-      'makhana',
-      'chocolate',
-      'tea',
-      'coffee',
-      'juice',
-      'soda',
-    ],
-  },
-  {
-    id: 'meat',
-    title: 'Meat, Fish & Eggs',
-    keywords: ['chicken', 'mutton', 'fish', 'prawn', 'egg', 'eggs'],
-  },
-  {
-    id: 'home',
-    title: 'Household Essentials',
-    keywords: ['detergent', 'soap', 'shampoo', 'cleaner', 'tissue', 'foil'],
-  },
-] as const;
-
-const OTHER_CATEGORY = {
-  id: 'other',
-  title: 'Other Essentials',
-  keywords: [] as string[],
-};
-
-const CATEGORY_SECTIONS = [...CATEGORY_DEFINITIONS, OTHER_CATEGORY];
-
-const normalize = (value: string) => value.trim().toLowerCase();
-
-const getCategoryId = (name: string) => {
-  const normalized = normalize(name);
-  const match = CATEGORY_DEFINITIONS.find((category) =>
-    category.keywords.some((keyword) => normalized.includes(keyword))
-  );
-  return match?.id ?? OTHER_CATEGORY.id;
-};
-
-const getNextStatus = (status: GroceryStatus) => {
-  const index = STATUS_ORDER.indexOf(status);
-  return STATUS_ORDER[(index + 1) % STATUS_ORDER.length];
-};
 
 const applyStatusToRemaining = (
   status: GroceryStatus,
@@ -219,23 +52,36 @@ export function Kitchen({
   onAddGrocery,
   onUpdateGrocery,
   onRemoveGrocery,
+  onClearGroceries,
+  onResetGrocery,
 }: Props) {
   const [newItem, setNewItem] = useState(defaultNewItem);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState(defaultNewItem);
+  const [listMode, setListMode] = useState<'weekly' | 'monthly' | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<GroceryStatus | 'all'>('all');
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(CATEGORY_SECTIONS.map((category) => [category.id, false]))
   );
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredGroceries = groceries.filter((item) => {
+    const matchesSearch = normalizedSearch
+      ? item.name.toLowerCase().includes(normalizedSearch)
+      : true;
+    const matchesStatus = statusFilter === 'all' ? true : item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
   const groupedGroceries = useMemo(() => {
     const groups = new Map<string, GroceryItem[]>();
-    groceries.forEach((item) => {
-      const categoryId = getCategoryId(item.name);
+    filteredGroceries.forEach((item) => {
+      const categoryId = item.categoryId ?? getCategoryId(item.name);
       const next = groups.get(categoryId) ?? [];
       next.push(item);
       groups.set(categoryId, next);
     });
     return groups;
-  }, [groceries]);
+  }, [filteredGroceries]);
 
   const handleStartEdit = (item: GroceryItem) => {
     setEditingId(item.id);
@@ -245,12 +91,15 @@ export function Kitchen({
       remainingQuantity: item.remainingQuantity,
       unit: item.unit,
       status: item.status,
+      frequency: item.frequency,
+      categoryId: item.categoryId,
     });
   };
 
   const handleSaveEdit = () => {
     if (!editingId) return;
     if (!editDraft.name.trim()) return;
+    if (!window.confirm(`Save changes to ${editDraft.name.trim()}?`)) return;
     const nextRemaining = applyStatusToRemaining(
       editDraft.status,
       editDraft.orderedQuantity,
@@ -262,6 +111,8 @@ export function Kitchen({
       remainingQuantity: nextRemaining,
       unit: editDraft.unit.trim(),
       status: editDraft.status,
+      frequency: editDraft.frequency,
+      categoryId: editDraft.categoryId,
     });
     setEditingId(null);
   };
@@ -278,6 +129,8 @@ export function Kitchen({
       ),
       unit: newItem.unit.trim(),
       status: newItem.status,
+      frequency: newItem.frequency,
+      categoryId: newItem.categoryId,
     });
     setNewItem(defaultNewItem);
   };
@@ -288,6 +141,21 @@ export function Kitchen({
       [categoryId]: !prev[categoryId],
     }));
   };
+
+  const generatedList = useMemo(() => {
+    if (!listMode) return [];
+    return groceries.filter(
+      (item) =>
+        item.frequency === listMode && (item.status === 'low' || item.status === 'out')
+    );
+  }, [groceries, listMode]);
+
+  const isFiltering = Boolean(normalizedSearch) || statusFilter !== 'all';
+  const categoriesToRender = isFiltering
+    ? CATEGORY_SECTIONS.filter(
+        (category) => (groupedGroceries.get(category.id) ?? []).length > 0
+      )
+    : CATEGORY_SECTIONS;
 
   return (
     <div className={styles.kitchen}>
@@ -300,78 +168,251 @@ export function Kitchen({
         </div>
 
         <div className={styles.card}>
+          <div className={styles.listHeader}>
+            <div>
+              <h3 className={styles.listTitle}>Auto-generate grocery list</h3>
+              <p className={styles.listMeta}>Based on items marked low or out of stock.</p>
+            </div>
+            <div className={styles.listActions}>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={() => setListMode('weekly')}
+              >
+                Weekly list
+              </button>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={() => setListMode('monthly')}
+              >
+                Monthly list
+              </button>
+              <button
+                type="button"
+                className={styles.dangerButton}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Remove all grocery items from your inventory? This will clear the entire list.'
+                    )
+                  ) {
+                    onClearGroceries();
+                  }
+                }}
+              >
+                Remove all
+              </button>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      'Reset groceries to the default list? This will replace your current items.'
+                    )
+                  ) {
+                    onResetGrocery();
+                  }
+                }}
+              >
+                Reset defaults
+              </button>
+            </div>
+          </div>
+          {listMode ? (
+            <div className={styles.listPanel}>
+              <div className={styles.listPanelHeader}>
+                <span className={styles.listBadge}>
+                  {listMode === 'weekly' ? 'Weekly' : 'Monthly'} restock
+                </span>
+                <button
+                  type="button"
+                  className={styles.closeButton}
+                  onClick={() => setListMode(null)}
+                  aria-label={`Close ${listMode === 'weekly' ? 'weekly' : 'monthly'} restock list`}
+                >
+                  x
+                </button>
+              </div>
+              {generatedList.length === 0 ? (
+                <p className={styles.emptyText}>You are all set for this list.</p>
+              ) : (
+                <div className={styles.generatedList}>
+                  {generatedList.map((item) => (
+                    <div key={item.id} className={styles.generatedItem}>
+                      <div>
+                        <div className={styles.itemName}>{item.name}</div>
+                        <div className={styles.itemMeta}>
+                          {item.remainingQuantity} / {item.orderedQuantity}{' '}
+                          {item.unit || 'units'}
+                        </div>
+                      </div>
+                      <span className={`${styles.statusPill} ${styles[`status${item.status}`]}`}>
+                        {STATUS_LABELS[item.status]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : null}
+
           <div className={styles.formRow}>
-            <input
-              className={styles.input}
-              placeholder="Item name (Atta, Milk)"
-              value={newItem.name}
-              onChange={(event) => setNewItem((prev) => ({ ...prev, name: event.target.value }))}
-            />
-            <input
-              className={styles.input}
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder="Ordered"
-              value={Number.isNaN(newItem.orderedQuantity) ? '' : newItem.orderedQuantity}
-              onChange={(event) => {
-                const nextValue = Number(event.target.value);
-                setNewItem((prev) => ({
-                  ...prev,
-                  orderedQuantity: nextValue,
-                  remainingQuantity:
-                    prev.remainingQuantity > nextValue ? nextValue : prev.remainingQuantity,
-                }));
-              }}
-            />
-            <input
-              className={styles.input}
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder="Remaining"
-              value={Number.isNaN(newItem.remainingQuantity) ? '' : newItem.remainingQuantity}
-              onChange={(event) =>
-                setNewItem((prev) => ({
-                  ...prev,
-                  remainingQuantity: Number(event.target.value),
-                }))
-              }
-            />
-            <select
-              className={styles.select}
-              value={newItem.unit}
-              onChange={(event) => setNewItem((prev) => ({ ...prev, unit: event.target.value }))}
-            >
-              {UNIT_OPTIONS.map((unit) => (
-                <option key={unit} value={unit}>
-                  {unit}
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.select}
-              value={newItem.status}
-              onChange={(event) =>
-                setNewItem((prev) => ({ ...prev, status: event.target.value as GroceryStatus }))
-              }
-            >
-              {STATUS_ORDER.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABELS[status]}
-                </option>
-              ))}
-            </select>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Item</span>
+              <input
+                className={styles.input}
+                placeholder="Atta, Milk"
+                value={newItem.name}
+                onChange={(event) => setNewItem((prev) => ({ ...prev, name: event.target.value }))}
+              />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Ordered qty</span>
+              <input
+                className={styles.input}
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="e.g. 2"
+                value={Number.isNaN(newItem.orderedQuantity) ? '' : newItem.orderedQuantity}
+                onChange={(event) => {
+                  const nextValue = Number(event.target.value);
+                  setNewItem((prev) => ({
+                    ...prev,
+                    orderedQuantity: nextValue,
+                    remainingQuantity:
+                      prev.remainingQuantity > nextValue ? nextValue : prev.remainingQuantity,
+                  }));
+                }}
+              />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Remaining qty</span>
+              <input
+                className={styles.input}
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="e.g. 1.5"
+                value={Number.isNaN(newItem.remainingQuantity) ? '' : newItem.remainingQuantity}
+                onChange={(event) =>
+                  setNewItem((prev) => ({
+                    ...prev,
+                    remainingQuantity: Number(event.target.value),
+                  }))
+                }
+              />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Unit</span>
+              <select
+                className={styles.select}
+                value={newItem.unit}
+                onChange={(event) => setNewItem((prev) => ({ ...prev, unit: event.target.value }))}
+              >
+                {UNIT_OPTIONS.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Status</span>
+              <select
+                className={styles.select}
+                value={newItem.status}
+                onChange={(event) =>
+                  setNewItem((prev) => ({ ...prev, status: event.target.value as GroceryStatus }))
+                }
+              >
+                {STATUS_ORDER.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Frequency</span>
+              <select
+                className={styles.select}
+                value={newItem.frequency}
+                onChange={(event) =>
+                  setNewItem((prev) => ({
+                    ...prev,
+                    frequency: event.target.value as GroceryFrequency,
+                  }))
+                }
+              >
+                {FREQUENCY_ORDER.map((frequency) => (
+                  <option key={frequency} value={frequency}>
+                    {FREQUENCY_LABELS[frequency]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Category</span>
+              <select
+                className={styles.select}
+                value={newItem.categoryId ?? 'auto'}
+                onChange={(event) =>
+                  setNewItem((prev) => ({
+                    ...prev,
+                    categoryId: event.target.value === 'auto' ? undefined : event.target.value,
+                  }))
+                }
+              >
+                <option value="auto">Auto</option>
+                {CATEGORY_SECTIONS.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.title}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="button" className={styles.primaryButton} onClick={handleAddItem}>
               Add
             </button>
           </div>
 
+          <div className={styles.searchRow}>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Search</span>
+              <input
+                className={styles.input}
+                placeholder="Search groceries"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
+            </label>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Status filter</span>
+              <select
+                className={styles.select}
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as GroceryStatus | 'all')}
+              >
+                <option value="all">All status</option>
+                {STATUS_ORDER.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABELS[status]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
           {groceries.length === 0 ? (
             <p className={styles.emptyText}>No groceries yet. Add your first item.</p>
+          ) : filteredGroceries.length === 0 ? (
+            <p className={styles.emptyText}>No groceries match your search.</p>
           ) : (
             <div className={styles.groupList}>
-              {CATEGORY_SECTIONS.map((category) => {
+              {categoriesToRender.map((category) => {
                 const items = groupedGroceries.get(category.id) ?? [];
                 const isCollapsed = collapsedSections[category.id] ?? false;
                 return (
@@ -418,6 +459,7 @@ export function Kitchen({
                                         type="number"
                                         min="0"
                                         step="0.1"
+                                        placeholder="Ordered qty"
                                         value={
                                           Number.isNaN(editDraft.orderedQuantity)
                                             ? ''
@@ -439,6 +481,7 @@ export function Kitchen({
                                         type="number"
                                         min="0"
                                         step="0.1"
+                                        placeholder="Remaining qty"
                                         value={
                                           Number.isNaN(editDraft.remainingQuantity)
                                             ? ''
@@ -483,6 +526,42 @@ export function Kitchen({
                                           </option>
                                         ))}
                                       </select>
+                                      <select
+                                        className={styles.select}
+                                        value={editDraft.frequency}
+                                        onChange={(event) =>
+                                          setEditDraft((prev) => ({
+                                            ...prev,
+                                            frequency: event.target.value as GroceryFrequency,
+                                          }))
+                                        }
+                                      >
+                                        {FREQUENCY_ORDER.map((frequency) => (
+                                          <option key={frequency} value={frequency}>
+                                            {FREQUENCY_LABELS[frequency]}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        className={styles.select}
+                                        value={editDraft.categoryId ?? 'auto'}
+                                        onChange={(event) =>
+                                          setEditDraft((prev) => ({
+                                            ...prev,
+                                            categoryId:
+                                              event.target.value === 'auto'
+                                                ? undefined
+                                                : event.target.value,
+                                          }))
+                                        }
+                                      >
+                                        <option value="auto">Auto</option>
+                                        {CATEGORY_SECTIONS.map((category) => (
+                                          <option key={category.id} value={category.id}>
+                                            {category.title}
+                                          </option>
+                                        ))}
+                                      </select>
                                       <div className={styles.rowActions}>
                                         <button
                                           type="button"
@@ -508,21 +587,15 @@ export function Kitchen({
                                           {item.remainingQuantity} / {item.orderedQuantity}{' '}
                                           {item.unit || 'units'}
                                         </div>
+                                        <div className={styles.itemMeta}>
+                                          {FREQUENCY_LABELS[item.frequency]}
+                                        </div>
                                       </div>
                                       <button
                                         type="button"
                                         className={`${styles.statusPill} ${styles[`status${item.status}`]}`}
-                                        onClick={() => {
-                                          const nextStatus = getNextStatus(item.status);
-                                          onUpdateGrocery(item.id, {
-                                            status: nextStatus,
-                                            remainingQuantity: applyStatusToRemaining(
-                                              nextStatus,
-                                              item.orderedQuantity,
-                                              item.remainingQuantity
-                                            ),
-                                          });
-                                        }}
+                                        disabled
+                                        aria-disabled="true"
                                       >
                                         {STATUS_LABELS[item.status]}
                                       </button>
@@ -537,7 +610,11 @@ export function Kitchen({
                                         <button
                                           type="button"
                                           className={styles.dangerButton}
-                                          onClick={() => onRemoveGrocery(item.id)}
+                                          onClick={() => {
+                                            if (window.confirm(`Remove ${item.name}?`)) {
+                                              onRemoveGrocery(item.id);
+                                            }
+                                          }}
                                         >
                                           Remove
                                         </button>
