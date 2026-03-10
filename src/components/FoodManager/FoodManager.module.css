@@ -71,6 +71,7 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .menuTabs {
@@ -81,6 +82,8 @@
   border-radius: 999px;
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .menuButton {

@@ -1,9 +1,10 @@
 .wrapper {
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
+  width: 100%;
 }
 
 .wheel {
@@ -11,6 +12,8 @@
   border-radius: 50%;
   box-shadow: 0 0 0 4px var(--color-border), 0 8px 32px rgba(0, 0, 0, 0.2);
   flex-shrink: 0;
+  max-width: 100%;
+  height: auto;
 }
 
 .pointer {
@@ -41,8 +44,7 @@
 }
 
 @media (max-width: 480px) {
-  .wheel {
-    max-width: min(320px, 100vw - 32px);
-    max-height: min(320px, 100vw - 32px);
+  .wrapper {
+    padding: 0.25rem 0;
   }
 }
