@@ -237,6 +237,14 @@
   margin-bottom: var(--space-sm);
 }
 
+.aiHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
 .listBadge {
   padding: 0.3rem 0.6rem;
   border-radius: var(--radius-full);
@@ -274,6 +282,85 @@
   border-radius: var(--radius-md);
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
+}
+
+.suggestionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.suggestionCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.suggestionTitle {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.suggestionWhy {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.suggestionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.suggestionLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chip,
+.chipAlt {
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.chip {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.chipAlt {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
+.errorText {
+  margin: 0.25rem 0 0;
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.subtleMeta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
 }
 
 .groupCard {
@@ -392,6 +479,11 @@
   }
 
   .listHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .aiHeader {
     flex-direction: column;
     align-items: flex-start;
   }

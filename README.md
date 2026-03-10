@@ -98,6 +98,40 @@ npm run lint
 
 Run the SQL in `docs/foods.sql` and `docs/groceries.sql` to create the tables and RLS policies for user-owned lists.
 
+### Local Edge Functions (Gemini)
+
+To run the `meal-suggestions` Edge Function locally:
+
+1. Install the Supabase CLI if needed.
+
+2. Initialize Supabase in this repo (only if `supabase/config.toml` is missing):
+
+```bash
+npx supabase init
+```
+
+3. Create a local secrets file for functions:
+
+```bash
+copy supabase\\functions\\.env.example supabase\\functions\\.env
+```
+
+Then edit `supabase/functions/.env` and set:
+
+```
+GEMINI_API_KEY=your_google_ai_studio_key
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+4. Start Supabase locally and serve the function:
+
+```bash
+npx supabase start
+npx supabase functions serve meal-suggestions
+```
+
+The function runs at `http://localhost:54321/functions/v1/meal-suggestions`.
+
 ## Usage
 
 1. **Spin** — Click “Spin Now 🍽️” (or focus and press Enter/Space) to spin the wheel. The wheel spins for about 4 seconds and stops on a random food.

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import type { GroceryFrequency, GroceryItem, GroceryStatus } from '../../types';
+import type { GroceryFrequency, GroceryItem, GroceryStatus, MealSuggestion } from '../../types';
 import { CATEGORY_SECTIONS, getCategoryId } from '../../utils/groceryCategories';
+import { generateMealSuggestions } from '../../utils/mealSuggestions';
 import styles from './Kitchen.module.css';
 
 type Props = {
@@ -61,10 +62,19 @@ export function Kitchen({
   const [listMode, setListMode] = useState<'weekly' | 'monthly' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<GroceryStatus | 'all'>('all');
+  const [mealSuggestions, setMealSuggestions] = useState<MealSuggestion[]>([]);
+  const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
+  const [mealError, setMealError] = useState<string | null>(null);
+  const [lastGeneratedAt, setLastGeneratedAt] = useState<number | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(CATEGORY_SECTIONS.map((category) => [category.id, false]))
   );
   const normalizedSearch = searchTerm.trim().toLowerCase();
+  const availableGroceries = useMemo(
+    () =>
+      groceries.filter((item) => item.status !== 'out' && item.remainingQuantity > 0),
+    [groceries]
+  );
   const filteredGroceries = groceries.filter((item) => {
     const matchesSearch = normalizedSearch
       ? item.name.toLowerCase().includes(normalizedSearch)
@@ -149,6 +159,35 @@ export function Kitchen({
         item.frequency === listMode && (item.status === 'low' || item.status === 'out')
     );
   }, [groceries, listMode]);
+
+  const handleGenerateMeals = async () => {
+    if (availableGroceries.length === 0) {
+      setMealError('Add groceries marked available to generate cook-at-home options.');
+      setMealSuggestions([]);
+      return;
+    }
+
+    setIsGeneratingMeals(true);
+    setMealError(null);
+    try {
+      const suggestions = await generateMealSuggestions(
+        availableGroceries.map((item) => ({
+          name: item.name,
+          remainingQuantity: item.remainingQuantity,
+          unit: item.unit,
+          status: item.status,
+        }))
+      );
+      setMealSuggestions(suggestions);
+      setLastGeneratedAt(Date.now());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to generate meal ideas.';
+      setMealError(message);
+      setMealSuggestions([]);
+    } finally {
+      setIsGeneratingMeals(false);
+    }
+  };
 
   const isFiltering = Boolean(normalizedSearch) || statusFilter !== 'all';
   const categoriesToRender = isFiltering
@@ -257,6 +296,81 @@ export function Kitchen({
               )}
             </div>
           ) : null}
+
+          <div className={styles.listPanel}>
+            <div className={styles.aiHeader}>
+              <div>
+                <h3 className={styles.listTitle}>Cook-at-home ideas</h3>
+                <p className={styles.listMeta}>
+                  Generated from items marked available in your kitchen.
+                </p>
+              </div>
+              <div className={styles.listActions}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={handleGenerateMeals}
+                  disabled={isGeneratingMeals}
+                >
+                  {isGeneratingMeals ? 'Generating...' : 'Generate ideas'}
+                </button>
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() => {
+                    setMealSuggestions([]);
+                    setMealError(null);
+                    setLastGeneratedAt(null);
+                  }}
+                  disabled={mealSuggestions.length === 0 && !mealError}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            {mealError ? <p className={styles.errorText}>{mealError}</p> : null}
+            {lastGeneratedAt ? (
+              <p className={styles.subtleMeta}>
+                Last generated {new Date(lastGeneratedAt).toLocaleTimeString()}
+              </p>
+            ) : null}
+            {mealSuggestions.length === 0 && !mealError ? (
+              <p className={styles.emptyText}>
+                Tap generate to get dishes you can cook with your current groceries.
+              </p>
+            ) : mealSuggestions.length > 0 ? (
+              <div className={styles.suggestionGrid}>
+                {mealSuggestions.map((suggestion) => (
+                  <div key={suggestion.name} className={styles.suggestionCard}>
+                    <div className={styles.suggestionTitle}>{suggestion.name}</div>
+                    <p className={styles.suggestionWhy}>{suggestion.why}</p>
+                    <div className={styles.suggestionSection}>
+                      <span className={styles.suggestionLabel}>Key ingredients</span>
+                      <div className={styles.chipRow}>
+                        {suggestion.keyIngredients.map((item) => (
+                          <span key={item} className={styles.chip}>
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {suggestion.missingIngredients.length > 0 ? (
+                      <div className={styles.suggestionSection}>
+                        <span className={styles.suggestionLabel}>Optional add-ons</span>
+                        <div className={styles.chipRow}>
+                          {suggestion.missingIngredients.map((item) => (
+                            <span key={item} className={styles.chipAlt}>
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
 
           <div className={styles.formRow}>
             <label className={styles.field}>
