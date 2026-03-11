@@ -1,8 +1,8 @@
 ﻿import styles from './TabBar.module.css';
 
 interface TabBarProps {
-  activeTab: 'spin' | 'kitchen' | 'profile';
-  onTabChange: (tab: 'spin' | 'kitchen' | 'profile') => void;
+  activeTab: 'spin' | 'kitchen' | 'cook' | 'profile';
+  onTabChange: (tab: 'spin' | 'kitchen' | 'cook' | 'profile') => void;
   onProfileClick: () => void;
 }
 
@@ -41,6 +41,26 @@ export function TabBar({ activeTab, onTabChange, onProfileClick }: TabBarProps) 
           </svg>
         </span>
         <span className={styles.tabLabel}>Kitchen</span>
+      </button>
+      <button
+        type="button"
+        className={activeTab === 'cook' ? styles.tabButtonActive : styles.tabButton}
+        onClick={() => onTabChange('cook')}
+        aria-current={activeTab === 'cook' ? 'page' : undefined}
+      >
+        <span className={styles.tabIcon} aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation">
+            <path
+              d="M6 7h12v9a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V7z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <path d="M8 7V5h8v2" fill="none" stroke="currentColor" strokeWidth="2" />
+            <path d="M9 11h6" fill="none" stroke="currentColor" strokeWidth="2" />
+          </svg>
+        </span>
+        <span className={styles.tabLabel}>Cook</span>
       </button>
       <button
         type="button"

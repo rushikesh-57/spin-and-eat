@@ -14,11 +14,13 @@ const STORAGE_KEYS = {
   ACTIVE_SOURCE: 'spin-and-eat:active-source',
   GROCERIES: 'spin-and-eat:groceries',
   ONBOARDING_CHOICE: 'spin-and-eat:onboarding-choice',
+  WHEEL_OVERRIDE: 'spin-and-eat:wheel-override',
 } as const;
 
 export type OnboardingChoice = 'default' | 'custom' | 'done';
 
 const onboardingKey = (userId: string) => `${STORAGE_KEYS.ONBOARDING_CHOICE}:${userId}`;
+const wheelOverrideKey = (userId: string) => `${STORAGE_KEYS.WHEEL_OVERRIDE}:${userId}`;
 
 export function loadOnboardingChoice(userId: string): OnboardingChoice | null {
   try {
@@ -33,6 +35,29 @@ export function loadOnboardingChoice(userId: string): OnboardingChoice | null {
 export function saveOnboardingChoice(userId: string, choice: OnboardingChoice): void {
   try {
     localStorage.setItem(onboardingKey(userId), choice);
+  } catch {
+    // ignore
+  }
+}
+
+export function loadWheelOverride(userId: string): string[] | null {
+  try {
+    const raw = localStorage.getItem(wheelOverrideKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveWheelOverride(userId: string, suggestions: string[] | null): void {
+  try {
+    if (!suggestions || suggestions.length === 0) {
+      localStorage.removeItem(wheelOverrideKey(userId));
+      return;
+    }
+    localStorage.setItem(wheelOverrideKey(userId), JSON.stringify(suggestions));
   } catch {
     // ignore
   }

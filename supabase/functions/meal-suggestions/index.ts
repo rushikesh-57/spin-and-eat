@@ -14,14 +14,11 @@ type GroceryInput = {
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta';
 
 const buildGroceryList = (items: GroceryInput[]) =>
+const buildGroceryList = (items: GroceryInput[]) =>
   items
     .map((item) => {
       const name = item.name?.trim() || 'Unknown item';
-      const quantity =
-        typeof item.remainingQuantity === 'number' && item.unit
-          ? ` (${item.remainingQuantity} ${item.unit})`
-          : '';
-      return `- ${name}${quantity}`;
+      return `- ${name}`;
     })
     .join('\n');
 
@@ -51,15 +48,34 @@ Deno.serve(async (req) => {
   const groceries = Array.isArray(payload.groceries) ? payload.groceries : [];
   const maxSuggestions =
     typeof payload.maxSuggestions === 'number' && payload.maxSuggestions > 0
-      ? Math.min(4, Math.floor(payload.maxSuggestions))
-      : 3;
+      ? Math.min(10, Math.floor(payload.maxSuggestions))
+      : 10;
 
-  const available = groceries.filter(
-    (item) =>
+  const pantryKeywords = [
+    'masala',
+    'spice',
+    'powder',
+    'chilli',
+    'turmeric',
+    'cumin',
+    'coriander',
+    'pepper',
+    'salt',
+    'sugar',
+    'oil',
+    'ghee',
+    'butter',
+    'vinegar',
+  ];
+  const available = groceries.filter((item) => {
+    const isAvailable =
       (item.status ?? 'available') !== 'out' &&
       typeof item.remainingQuantity === 'number' &&
-      item.remainingQuantity > 0
-  );
+      item.remainingQuantity > 0;
+    const name = (item.name ?? '').toLowerCase();
+    const isPantry = pantryKeywords.some((keyword) => name.includes(keyword));
+    return isAvailable && !isPantry;
+  });
 
   if (available.length === 0) {
     return new Response(JSON.stringify({ suggestions: [] }), {
@@ -72,7 +88,7 @@ Deno.serve(async (req) => {
   const prompt = `Available groceries:
 ${groceryList}
 
-Suggest ${maxSuggestions} cook-at-home dishes that can be made mainly from the available items. If an optional add-on would improve the dish, list it as missing (optional). Keep responses concise: each "why" must be under 80 characters, keyIngredients max 4 items, missingIngredients max 3 items.`;
+Return up to ${maxSuggestions} cook-at-home dish names that can be made mainly from the available items. Only return dish names. Output a single-line JSON object only (no extra whitespace).`;
 
   const response = await fetch(`${GEMINI_API_BASE}/models/${model}:generateContent`, {
     method: 'POST',
@@ -96,8 +112,8 @@ Suggest ${maxSuggestions} cook-at-home dishes that can be made mainly from the a
         ],
       },
       generationConfig: {
-        maxOutputTokens: 2048,
-        temperature: 0.4,
+        maxOutputTokens: 1024,
+        temperature: 0.3,
         responseMimeType: 'application/json',
         responseSchema: {
           type: 'object',
@@ -105,20 +121,7 @@ Suggest ${maxSuggestions} cook-at-home dishes that can be made mainly from the a
             suggestions: {
               type: 'array',
               items: {
-                type: 'object',
-                properties: {
-                  name: { type: 'string' },
-                  why: { type: 'string' },
-                  keyIngredients: {
-                    type: 'array',
-                    items: { type: 'string' },
-                  },
-                  missingIngredients: {
-                    type: 'array',
-                    items: { type: 'string' },
-                  },
-                },
-                required: ['name', 'why', 'keyIngredients', 'missingIngredients'],
+                type: 'string',
               },
             },
           },

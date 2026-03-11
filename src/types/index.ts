@@ -25,12 +25,7 @@ export interface GroceryItem {
   categoryId?: string;
 }
 
-export interface MealSuggestion {
-  name: string;
-  why: string;
-  keyIngredients: string[];
-  missingIngredients: string[];
-}
+export type MealSuggestion = string;
 
 export type GroceryStatus = 'available' | 'low' | 'out';
 export type GroceryFrequency = 'weekly' | 'monthly' | 'adhoc';

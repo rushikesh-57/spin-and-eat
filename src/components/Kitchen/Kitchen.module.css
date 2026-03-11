@@ -306,50 +306,6 @@
   color: var(--color-text);
 }
 
-.suggestionWhy {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-}
-
-.suggestionSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.suggestionLabel {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
-
-.chipRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.chip,
-.chipAlt {
-  padding: 0.25rem 0.6rem;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.chip {
-  background: rgba(34, 197, 94, 0.12);
-  color: #166534;
-}
-
-.chipAlt {
-  background: rgba(59, 130, 246, 0.12);
-  color: #1d4ed8;
-}
-
 .errorText {
   margin: 0.25rem 0 0;
   color: #b91c1c;
@@ -361,6 +317,56 @@
   margin: 0.2rem 0 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+.selectorPanel {
+  margin-top: var(--space-sm);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  border: 1px dashed var(--color-border);
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.selectorHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.selectorTitle {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.selectorMeta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.selectorList {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.selectorRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-muted);
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.selectorFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .groupCard {

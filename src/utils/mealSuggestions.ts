@@ -10,7 +10,7 @@ type GroceryInput = {
 
 export async function generateMealSuggestions(
   groceries: GroceryInput[],
-  maxSuggestions = 3
+  maxSuggestions = 10
 ): Promise<MealSuggestion[]> {
   const { data, error } = await supabase.functions.invoke('meal-suggestions', {
     body: {
