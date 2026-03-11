@@ -28,6 +28,9 @@
   border-radius: var(--radius-lg);
   padding: var(--space-md);
   box-shadow: inset 0 0 0 1px var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
 
 .aiHeader {
@@ -55,6 +58,16 @@
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.wheelWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.spinRow {
+  display: flex;
+  justify-content: center;
 }
 
 .primaryButton,
@@ -198,4 +211,3 @@
     align-items: flex-start;
   }
 }
-

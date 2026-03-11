@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
-import type { FoodCategory, FoodItem } from './types';
+import type { FoodCategory } from './types';
 import { FOOD_CATEGORIES } from './types';
 import { useFoodItems } from './hooks/useFoodItems';
 import { useSpinHistory } from './hooks/useSpinHistory';
@@ -18,12 +18,9 @@ import { TabBar } from './components/layout/TabBar';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { ProfilePanel } from './components/layout/ProfilePanel';
 import { playSpinCompleteSound } from './utils/sound';
-import { generateId } from './utils/id';
 import {
   loadOnboardingChoice,
-  loadWheelOverride,
   saveOnboardingChoice,
-  saveWheelOverride,
 } from './utils/storage';
 import { supabase } from './lib/supabaseClient';
 import styles from './App.module.css';
@@ -37,7 +34,6 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [wheelOverride, setWheelOverride] = useState<FoodItem[] | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
@@ -48,8 +44,7 @@ function App() {
   const food = useFoodItems(userId);
   const kitchen = useGroceryInventory(userId);
   const history = useSpinHistory();
-  const wheelItems = wheelOverride ?? food.filteredItems;
-  const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(wheelItems);
+  const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(food.filteredItems);
   const isLoggedIn = Boolean(userName);
 
   const handleSpin = useCallback(() => {
@@ -78,35 +73,6 @@ function App() {
     food.setActiveCategories(allCategories);
   }, [food.setActiveCategories]);
 
-  const buildWheelItems = useCallback(
-    (suggestions: string[]) =>
-      suggestions.map((name) => ({
-        id: generateId(),
-        name,
-        category: 'dinner',
-        source: 'home',
-      })),
-    []
-  );
-
-  const handleUseSuggestionsOnWheel = useCallback(
-    (suggestions: string[]) => {
-      const items: FoodItem[] = buildWheelItems(suggestions);
-      setWheelOverride(items);
-      if (userId) {
-        saveWheelOverride(userId, suggestions);
-      }
-      setActiveTab('spin');
-    },
-    [buildWheelItems, userId]
-  );
-
-  const handleClearWheelOverride = useCallback(() => {
-    setWheelOverride(null);
-    if (userId) {
-      saveWheelOverride(userId, null);
-    }
-  }, [userId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -203,7 +169,6 @@ function App() {
   useEffect(() => {
     if (!userId) {
       setShowOnboarding(false);
-      setWheelOverride(null);
       return;
     }
 
@@ -227,14 +192,6 @@ function App() {
 
     setShowOnboarding(true);
   }, [userId, food.isLoading, kitchen.isLoading, food.items.length, kitchen.items.length]);
-
-  useEffect(() => {
-    if (!userId) return;
-    const saved = loadWheelOverride(userId);
-    if (saved && saved.length > 0) {
-      setWheelOverride(buildWheelItems(saved));
-    }
-  }, [userId, buildWheelItems]);
 
   const handleUseDefaultLists = useCallback(async () => {
     if (!userId) return;
@@ -322,29 +279,15 @@ function App() {
                   </div>
                   <div className={styles.wheelWrap}>
                     <FoodWheel
-                      items={wheelItems}
+                      items={food.filteredItems}
                       rotation={rotation}
-                      aria-label={`Wheel with ${wheelItems.length} food options`}
+                      aria-label={`Wheel with ${food.filteredItems.length} food options`}
                     />
                   </div>
-                  {wheelOverride ? (
-                    <div className={styles.wheelNotice}>
-                      <span className={styles.wheelNoticeText}>
-                        Showing meal suggestions on the wheel.
-                      </span>
-                      <button
-                        type="button"
-                        className={styles.wheelNoticeButton}
-                        onClick={handleClearWheelOverride}
-                      >
-                        Use my foods
-                      </button>
-                    </div>
-                  ) : null}
                   <div className={styles.spinRow}>
                     <SpinButton
                       onClick={handleSpin}
-                      disabled={isSpinning || wheelItems.length === 0}
+                      disabled={isSpinning || food.filteredItems.length === 0}
                       aria-label="Spin the wheel to pick a random food"
                     />
                   </div>
@@ -389,10 +332,7 @@ function App() {
               </section>
             ) : activeTab === 'cook' ? (
               <section className={styles.cookPanel} aria-label="Cook at home">
-                <CookAtHome
-                  groceries={kitchen.items}
-                  onUseSuggestionsOnWheel={handleUseSuggestionsOnWheel}
-                />
+                <CookAtHome groceries={kitchen.items} />
               </section>
             ) : (
               <ProfilePanel

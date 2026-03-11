@@ -123,40 +123,6 @@
   justify-content: center;
 }
 
-.wheelNotice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.6rem 0.8rem;
-  border-radius: var(--radius-md);
-  background: rgba(14, 165, 233, 0.12);
-  border: 1px solid rgba(14, 165, 233, 0.25);
-  font-size: 0.85rem;
-}
-
-.wheelNoticeText {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.wheelNoticeButton {
-  border: none;
-  border-radius: var(--radius-full);
-  padding: 0.35rem 0.75rem;
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  background: var(--color-surface);
-  color: var(--color-text);
-  box-shadow: var(--shadow-soft);
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
-}
-
-.wheelNoticeButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-strong);
-}
 
 .onboardingCard {
   background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(14, 165, 233, 0.12)),

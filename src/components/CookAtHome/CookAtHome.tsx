@@ -1,14 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { GroceryItem, MealSuggestion } from '../../types';
+import type { FoodItem, GroceryItem, MealSuggestion } from '../../types';
+import { useWheelSpin } from '../../hooks/useWheelSpin';
+import { FoodWheel } from '../FoodWheel';
+import { SpinButton } from '../SpinButton';
+import { ResultDisplay } from '../ResultDisplay';
 import { generateMealSuggestions } from '../../utils/mealSuggestions';
+import { generateId } from '../../utils/id';
+import { playSpinCompleteSound } from '../../utils/sound';
 import styles from './CookAtHome.module.css';
 
 type Props = {
   groceries: GroceryItem[];
-  onUseSuggestionsOnWheel: (suggestions: string[]) => void;
 };
 
-export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
+const buildWheelItems = (suggestions: string[]): FoodItem[] =>
+  suggestions.map((name) => ({
+    id: generateId(),
+    name,
+    category: 'dinner' as const,
+    source: 'home' as const,
+  }));
+
+export function CookAtHome({ groceries }: Props) {
   const [mealSuggestions, setMealSuggestions] = useState<MealSuggestion[]>([]);
   const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
   const [mealError, setMealError] = useState<string | null>(null);
@@ -17,6 +30,8 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(
     () => new Set()
   );
+  const [wheelItems, setWheelItems] = useState<FoodItem[]>([]);
+  const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(wheelItems);
 
   const availableGroceries = useMemo(
     () =>
@@ -33,6 +48,7 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMealSuggestions(parsed);
           setSelectedSuggestions(new Set(parsed));
+          setWheelItems(buildWheelItems(parsed));
         }
       }
       if (storedTime) {
@@ -49,6 +65,7 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
   useEffect(() => {
     if (mealSuggestions.length > 0) {
       setSelectedSuggestions(new Set(mealSuggestions));
+      setWheelItems(buildWheelItems(mealSuggestions));
     }
   }, [mealSuggestions]);
 
@@ -77,6 +94,7 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
       } catch {
         // ignore
       }
+      setWheelItems(buildWheelItems(suggestions));
       setShowSuggestionPicker(false);
       const now = Date.now();
       setLastGeneratedAt(now);
@@ -89,6 +107,7 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
       const message = error instanceof Error ? error.message : 'Unable to generate meal ideas.';
       setMealError(message);
       setMealSuggestions([]);
+      setWheelItems([]);
       try {
         localStorage.removeItem('spin-and-eat:meal-suggestions');
         localStorage.removeItem('spin-and-eat:meal-suggestions-time');
@@ -123,8 +142,14 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
 
   const handleApplySuggestionsToWheel = () => {
     if (selectedSuggestions.size === 0) return;
-    onUseSuggestionsOnWheel(Array.from(selectedSuggestions));
+    setWheelItems(buildWheelItems(Array.from(selectedSuggestions)));
     setShowSuggestionPicker(false);
+  };
+
+  const handleSpin = () => {
+    spin(() => {
+      playSpinCompleteSound();
+    });
   };
 
   return (
@@ -137,6 +162,21 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
       </div>
 
       <div className={styles.card}>
+        <div className={styles.wheelWrap}>
+          <FoodWheel
+            items={wheelItems}
+            rotation={rotation}
+            aria-label={`Wheel with ${wheelItems.length} cook-at-home options`}
+          />
+        </div>
+        <div className={styles.spinRow}>
+          <SpinButton
+            onClick={handleSpin}
+            disabled={isSpinning || wheelItems.length === 0}
+            aria-label="Spin the wheel to pick a cook-at-home option"
+          />
+        </div>
+        <ResultDisplay item={selectedItem} isSpinning={isSpinning} />
         <div className={styles.aiHeader}>
           <div>
             <h3 className={styles.listTitle}>Cook-at-home ideas</h3>
@@ -259,4 +299,3 @@ export function CookAtHome({ groceries, onUseSuggestionsOnWheel }: Props) {
     </section>
   );
 }
-
