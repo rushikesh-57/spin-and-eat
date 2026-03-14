@@ -1,6 +1,4 @@
 ﻿import { useCallback, useEffect, useState } from 'react';
-import type { FoodCategory } from './types';
-import { FOOD_CATEGORIES } from './types';
 import { useFoodItems } from './hooks/useFoodItems';
 import { useSpinHistory } from './hooks/useSpinHistory';
 import { useWheelSpin } from './hooks/useWheelSpin';
@@ -8,7 +6,6 @@ import { useGroceryInventory } from './hooks/useGroceryInventory';
 import { FoodWheel } from './components/FoodWheel';
 import { SpinButton } from './components/SpinButton';
 import { ResultDisplay } from './components/ResultDisplay';
-import { CategoryFilter } from './components/CategoryFilter';
 import { FoodManager } from './components/FoodManager';
 import { SpinHistory } from './components/SpinHistory';
 import { Kitchen } from './components/Kitchen/Kitchen';
@@ -26,6 +23,7 @@ import { supabase } from './lib/supabaseClient';
 import styles from './App.module.css';
 
 const THEME_STORAGE_KEY = 'spin-eat-theme';
+const MOBILE_LAYOUT_QUERY = '(max-width: 719px)';
 
 function App() {
   const [userName, setUserName] = useState<string | null>(null);
@@ -34,6 +32,13 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isMobileLayout, setIsMobileLayout] = useState(() =>
+    window.matchMedia(MOBILE_LAYOUT_QUERY).matches
+  );
+  const [isPlanOpen, setIsPlanOpen] = useState(() =>
+    !window.matchMedia(MOBILE_LAYOUT_QUERY).matches
+  );
+  const [showMobileResult, setShowMobileResult] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
@@ -57,22 +62,6 @@ function App() {
       playSpinCompleteSound();
     });
   }, [spin, history.addToHistory]);
-
-  const handleCategoryToggle = useCallback(
-    (category: FoodCategory) => {
-      const next = food.activeCategories.includes(category)
-        ? food.activeCategories.filter((c) => c !== category)
-        : [...food.activeCategories, category];
-      food.setActiveCategories(next);
-    },
-    [food.activeCategories, food.setActiveCategories]
-  );
-
-  const handleSelectAllCategories = useCallback(() => {
-    const allCategories = Object.keys(FOOD_CATEGORIES) as FoodCategory[];
-    food.setActiveCategories(allCategories);
-  }, [food.setActiveCategories]);
-
 
   useEffect(() => {
     let isMounted = true;
@@ -118,6 +107,38 @@ function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_LAYOUT_QUERY);
+
+    const updateLayout = (matches: boolean) => {
+      setIsMobileLayout(matches);
+      setIsPlanOpen(!matches);
+    };
+
+    updateLayout(mediaQuery.matches);
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      updateLayout(event.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isSpinning) {
+      setShowMobileResult(false);
+      return;
+    }
+
+    if (isMobileLayout && selectedItem) {
+      setShowMobileResult(true);
+    }
+  }, [isMobileLayout, isSpinning, selectedItem]);
 
   const handleToggleTheme = useCallback(() => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -291,28 +312,45 @@ function App() {
                       aria-label="Spin the wheel to pick a random food"
                     />
                   </div>
-                  <ResultDisplay item={selectedItem} isSpinning={isSpinning} />
+                  <ResultDisplay
+                    item={isMobileLayout ? null : selectedItem}
+                    isSpinning={isSpinning}
+                    showHintWhenEmpty={!isMobileLayout}
+                  />
                 </section>
 
-                <section className={styles.controlsPanel} aria-label="Filters and food list">
-                  <h2 className={styles.panelTitle}>Plan your options</h2>
-                  <CategoryFilter
-                    activeCategories={food.activeCategories}
-                    onToggle={handleCategoryToggle}
-                    onSelectAll={handleSelectAllCategories}
-                    aria-label="Filter wheel by category"
-                  />
+                <section className={styles.controlsPanel} aria-label="Wheel options">
+                  <button
+                    type="button"
+                    className={styles.controlsToggle}
+                    onClick={() => setIsPlanOpen((prev) => !prev)}
+                    aria-expanded={isPlanOpen}
+                    aria-controls="spin-plan-content"
+                  >
+                    <span className={styles.controlsToggleText}>
+                      <span className={styles.panelTitle}>Wheel options</span>
+                      <span className={styles.panelSubtitle}>Pick what to show.</span>
+                    </span>
+                    <span className={styles.controlsToggleIcon} aria-hidden="true">
+                      {isPlanOpen ? 'Hide' : 'Show'}
+                    </span>
+                  </button>
 
-                  <FoodManager
-                    items={food.items}
-                    activeSource={food.activeSource}
-                    onSourceChange={food.setActiveSource}
-                    onAdd={food.addItem}
-                    onUpdate={food.updateItem}
-                    onRemove={food.removeItem}
-                    onClearAll={food.clearAll}
-                    onReset={food.resetToSample}
-                  />
+                  <div
+                    id="spin-plan-content"
+                    className={!isPlanOpen ? styles.controlsContentClosed : styles.controlsContent}
+                  >
+                    <FoodManager
+                      items={food.items}
+                      includedFoodIds={food.includedFoodIds}
+                      activeSource={food.activeSource}
+                      onSourceChange={food.setActiveSource}
+                      onToggleIncluded={food.toggleIncluded}
+                      onAdd={food.addItem}
+                      onClearAll={() => food.clearBySource(food.activeSource)}
+                      onReset={() => food.resetSourceToSample(food.activeSource)}
+                    />
+                  </div>
                 </section>
 
                 <section className={styles.historyPanel} aria-label="Recent spins">
@@ -356,6 +394,15 @@ function App() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           onProfileClick={handleProfileClick}
+        />
+      ) : null}
+
+      {activeTab === 'spin' && isMobileLayout && showMobileResult ? (
+        <ResultDisplay
+          item={selectedItem}
+          isSpinning={false}
+          asDialog
+          onDismiss={() => setShowMobileResult(false)}
         />
       ) : null}
     </div>

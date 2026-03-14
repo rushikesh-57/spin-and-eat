@@ -7,6 +7,8 @@ import {
   saveFoodItems,
   loadActiveSource,
   saveActiveSource,
+  loadIncludedFoodIds,
+  saveIncludedFoodIds,
 } from '../utils/storage';
 import { loadActiveCategories, saveActiveCategories } from '../utils/storage';
 import { generateId } from '../utils/id';
@@ -14,6 +16,7 @@ import { supabase } from '../lib/supabaseClient';
 
 const CATEGORY_IDS = Object.keys(FOOD_CATEGORIES) as FoodCategory[];
 const SOURCE_IDS = Object.keys(FOOD_SOURCES) as FoodSource[];
+const DEFAULT_INCLUDED_PER_SOURCE = 8;
 
 const sanitizeCategories = (categories: string[] | null): FoodCategory[] | null => {
   if (!categories) return null;
@@ -34,6 +37,41 @@ const sanitizeItems = (items: FoodItem[]): FoodItem[] =>
       source: normalizeSource((item as FoodItem & { source?: FoodSource }).source),
     }));
 
+const sampleFoodsForSource = (source: FoodSource) =>
+  SAMPLE_FOODS.filter((item) => item.source === source);
+
+const buildDefaultIncludedIds = (items: FoodItem[]): string[] =>
+  SOURCE_IDS.flatMap((source) =>
+    items
+      .filter((item) => item.source === source)
+      .slice(0, DEFAULT_INCLUDED_PER_SOURCE)
+      .map((item) => item.id)
+  );
+
+const normalizeIncludedIds = (items: FoodItem[], previousIds: string[] | null): string[] => {
+  const itemIds = new Set(items.map((item) => item.id));
+  const current = (previousIds ?? []).filter((id) => itemIds.has(id));
+  const next = [...current];
+
+  for (const source of SOURCE_IDS) {
+    const sourceItems = items.filter((item) => item.source === source);
+    const hasSourceSelection = sourceItems.some((item) => current.includes(item.id));
+
+    if (hasSourceSelection) {
+      continue;
+    }
+
+    next.push(
+      ...sourceItems
+        .slice(0, DEFAULT_INCLUDED_PER_SOURCE)
+        .map((item) => item.id)
+        .filter((id) => !next.includes(id))
+    );
+  }
+
+  return next;
+};
+
 export function useFoodItems(userId: string | null) {
   const [items, setItems] = useState<FoodItem[]>(() =>
     sanitizeItems(loadFoodItems(SAMPLE_FOODS))
@@ -45,6 +83,9 @@ export function useFoodItems(userId: string | null) {
     const stored = loadActiveSource();
     return SOURCE_IDS.includes(stored as FoodSource) ? (stored as FoodSource) : 'home';
   });
+  const [includedFoodIds, setIncludedFoodIds] = useState<string[] | null>(() =>
+    loadIncludedFoodIds(userId)
+  );
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,6 +94,19 @@ export function useFoodItems(userId: string | null) {
       return;
     }
     saveFoodItems(items);
+  }, [items, userId]);
+
+  useEffect(() => {
+    setIncludedFoodIds(loadIncludedFoodIds(userId));
+  }, [userId]);
+
+  useEffect(() => {
+    setIncludedFoodIds((prev) => {
+      const normalized = normalizeIncludedIds(items, prev);
+      const next = normalized.length > 0 ? normalized : buildDefaultIncludedIds(items);
+      saveIncludedFoodIds(userId, next);
+      return next;
+    });
   }, [items, userId]);
 
   useEffect(() => {
@@ -103,9 +157,12 @@ export function useFoodItems(userId: string | null) {
   }, [userId]);
 
   const activeCategoriesList = activeCategories ?? CATEGORY_IDS;
+  const includedFoodIdSet = new Set(includedFoodIds ?? items.map((item) => item.id));
   const filteredItems = items.filter(
     (item) =>
-      activeCategoriesList.includes(item.category) && item.source === activeSource
+      activeCategoriesList.includes(item.category) &&
+      item.source === activeSource &&
+      includedFoodIdSet.has(item.id)
   );
 
   const setActiveCategories = useCallback((categories: FoodCategory[]) => {
@@ -117,6 +174,21 @@ export function useFoodItems(userId: string | null) {
     setActiveSourceState(source);
     saveActiveSource(source);
   }, []);
+
+  const toggleIncluded = useCallback(
+    (id: string) => {
+      setIncludedFoodIds((prev) => {
+        const current = prev ?? items.map((item) => item.id);
+        const next = current.includes(id)
+          ? current.filter((currentId) => currentId !== id)
+          : [...current, id];
+        const normalized = next.length > 0 ? next : current;
+        saveIncludedFoodIds(userId, normalized);
+        return normalized;
+      });
+    },
+    [items, userId]
+  );
 
   const addItem = useCallback(
     async (name: string, category: FoodCategory, source: FoodSource) => {
@@ -241,6 +313,30 @@ export function useFoodItems(userId: string | null) {
     [userId]
   );
 
+  const clearBySource = useCallback(
+    async (source: FoodSource) => {
+      if (!userId) {
+        setItems((prev) => prev.filter((item) => item.source !== source));
+        return;
+      }
+
+      setError(null);
+      const { error: deleteError } = await supabase
+        .from('foods')
+        .delete()
+        .eq('user_id', userId)
+        .eq('source', source);
+
+      if (deleteError) {
+        setError(deleteError.message);
+        return;
+      }
+
+      setItems((prev) => prev.filter((item) => item.source !== source));
+    },
+    [userId]
+  );
+
   const clearAll = useCallback(async () => {
     if (!userId) {
       setItems([]);
@@ -256,6 +352,70 @@ export function useFoodItems(userId: string | null) {
 
     setItems([]);
   }, [userId]);
+
+  const resetSourceToSample = useCallback(
+    async (source: FoodSource) => {
+      const sourceSampleFoods = sampleFoodsForSource(source);
+
+      if (!userId) {
+        setItems((prev) => [
+          ...prev.filter((item) => item.source !== source),
+          ...sourceSampleFoods,
+        ]);
+        return;
+      }
+
+      setError(null);
+      const { error: deleteError } = await supabase
+        .from('foods')
+        .delete()
+        .eq('user_id', userId)
+        .eq('source', source);
+
+      if (deleteError) {
+        setError(deleteError.message);
+        return;
+      }
+
+      if (sourceSampleFoods.length === 0) {
+        setItems((prev) => prev.filter((item) => item.source !== source));
+        return;
+      }
+
+      const payload = sourceSampleFoods.map((item) => ({
+        user_id: userId,
+        food_name: item.name,
+        category: item.category,
+        source: item.source,
+      }));
+
+      const { data, error: insertError } = await supabase
+        .from('foods')
+        .insert(payload)
+        .select('id, food_name, category, source');
+
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+
+      const mapped =
+        data
+          ?.map((row) => ({
+            id: String(row.id),
+            name: row.food_name as string,
+            category: row.category as FoodCategory,
+            source: normalizeSource(row.source as FoodSource | undefined),
+          }))
+          .filter((item) => CATEGORY_IDS.includes(item.category)) ?? [];
+
+      setItems((prev) => [
+        ...prev.filter((item) => item.source !== source),
+        ...mapped,
+      ]);
+    },
+    [userId]
+  );
 
   const resetToSample = useCallback(async () => {
     if (!userId) {
@@ -303,14 +463,18 @@ export function useFoodItems(userId: string | null) {
   return {
     items,
     filteredItems,
+    includedFoodIds: includedFoodIds ?? items.map((item) => item.id),
     activeCategories: activeCategoriesList,
     activeSource,
     setActiveCategories,
     setActiveSource,
+    toggleIncluded,
     addItem,
     updateItem,
     removeItem,
+    clearBySource,
     clearAll,
+    resetSourceToSample,
     resetToSample,
     isLoading,
     error,

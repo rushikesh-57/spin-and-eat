@@ -60,12 +60,6 @@
   min-width: 100px;
 }
 
-.category {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-}
-
 .time {
   margin-left: auto;
   font-size: 0.75rem;

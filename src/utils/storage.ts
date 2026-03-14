@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   FEELING_LUCKY: 'spin-and-eat:feeling-lucky',
   ACTIVE_CATEGORIES: 'spin-and-eat:active-categories',
   ACTIVE_SOURCE: 'spin-and-eat:active-source',
+  INCLUDED_FOOD_IDS: 'spin-and-eat:included-food-ids',
   GROCERIES: 'spin-and-eat:groceries',
   ONBOARDING_CHOICE: 'spin-and-eat:onboarding-choice',
   WHEEL_OVERRIDE: 'spin-and-eat:wheel-override',
@@ -21,6 +22,8 @@ export type OnboardingChoice = 'default' | 'custom' | 'done';
 
 const onboardingKey = (userId: string) => `${STORAGE_KEYS.ONBOARDING_CHOICE}:${userId}`;
 const wheelOverrideKey = (userId: string) => `${STORAGE_KEYS.WHEEL_OVERRIDE}:${userId}`;
+const includedFoodIdsKey = (userId: string | null) =>
+  `${STORAGE_KEYS.INCLUDED_FOOD_IDS}:${userId ?? 'guest'}`;
 
 export function loadOnboardingChoice(userId: string): OnboardingChoice | null {
   try {
@@ -132,6 +135,25 @@ export function loadActiveCategories(): string[] | null {
 export function saveActiveCategories(categories: string[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_CATEGORIES, JSON.stringify(categories));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadIncludedFoodIds(userId: string | null): string[] | null {
+  try {
+    const raw = localStorage.getItem(includedFoodIdsKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveIncludedFoodIds(userId: string | null, ids: string[]): void {
+  try {
+    localStorage.setItem(includedFoodIdsKey(userId), JSON.stringify(ids));
   } catch {
     // ignore
   }

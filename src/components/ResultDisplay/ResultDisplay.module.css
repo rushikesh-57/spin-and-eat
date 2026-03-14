@@ -62,9 +62,45 @@
   line-height: 1.2;
 }
 
-.category {
-  font-size: 0.8rem;
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.dialogCard {
+  position: relative;
+  width: min(100%, 320px);
+  min-height: auto;
+  padding: 1.5rem 1rem 1rem;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
+}
+
+.closeButton {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  border: none;
+  background: transparent;
   color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 719px) {
+  .wrapper {
+    min-height: 72px;
+    padding: 0.75rem;
+  }
+
+  .name {
+    font-size: 1.45rem;
+  }
 }

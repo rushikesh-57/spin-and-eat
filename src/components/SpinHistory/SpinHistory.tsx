@@ -1,4 +1,3 @@
-import { FOOD_CATEGORIES } from '../../types';
 import type { SpinHistoryEntry } from '../../types';
 import styles from './SpinHistory.module.css';
 
@@ -56,7 +55,6 @@ export function SpinHistory({ history, onClear }: SpinHistoryProps) {
         {history.map((entry, i) => (
           <li key={`${entry.timestamp}-${i}`} className={styles.item}>
             <span className={styles.name}>{entry.foodName}</span>
-            <span className={styles.category}>{FOOD_CATEGORIES[entry.category]}</span>
             <time className={styles.time} dateTime={new Date(entry.timestamp).toISOString()}>
               {formatTime(entry.timestamp)}
             </time>
