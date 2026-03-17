@@ -309,6 +309,7 @@ function App() {
                     <SpinButton
                       onClick={handleSpin}
                       disabled={isSpinning || food.filteredItems.length === 0}
+                      isSpinning={isSpinning}
                       aria-label="Spin the wheel to pick a random food"
                     />
                   </div>
@@ -403,6 +404,10 @@ function App() {
           isSpinning={false}
           asDialog
           onDismiss={() => setShowMobileResult(false)}
+          onSpinAgain={() => {
+            setShowMobileResult(false);
+            handleSpin();
+          }}
         />
       ) : null}
     </div>

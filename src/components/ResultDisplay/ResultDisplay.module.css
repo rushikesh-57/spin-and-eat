@@ -33,8 +33,11 @@
 
 .result {
   border-color: var(--color-accent);
-  background: linear-gradient(135deg, var(--color-surface) 0%, rgba(249, 115, 22, 0.12) 100%);
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.65), transparent 55%),
+    linear-gradient(145deg, #fff7ed 0%, #ffedd5 55%, #fed7aa 100%);
   animation: resultPop 0.4s ease-out;
+  box-shadow: 0 22px 44px rgba(249, 115, 22, 0.2);
 }
 
 @keyframes resultPop {
@@ -76,22 +79,42 @@
 
 .dialogCard {
   position: relative;
-  width: min(100%, 320px);
+  width: min(100%, 340px);
   min-height: auto;
-  padding: 1.5rem 1rem 1rem;
+  padding: 1.75rem 1.1rem 1.1rem;
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.2);
 }
 
 .closeButton {
   position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 0.8rem;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: #111827;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.spinAgainButton {
+  margin-top: 1rem;
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1.2rem;
+  background: #f97316;
+  color: #fff7ed;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(249, 115, 22, 0.28);
 }
 
 @media (max-width: 719px) {
@@ -102,5 +125,9 @@
 
   .name {
     font-size: 1.45rem;
+  }
+
+  .dialogCard {
+    padding: 1.6rem 1rem 1rem;
   }
 }

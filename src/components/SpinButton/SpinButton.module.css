@@ -33,3 +33,7 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.buttonSpinning {
+  min-width: 10.5rem;
+}

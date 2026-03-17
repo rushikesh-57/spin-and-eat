@@ -34,16 +34,6 @@ export function FoodManager({
   const filteredItems = normalizedSearch
     ? sourceItems.filter((item) => item.name.toLowerCase().includes(normalizedSearch))
     : sourceItems;
-  const sortedItems = [...filteredItems].sort((left, right) => {
-    const leftIncluded = includedFoodIds.includes(left.id);
-    const rightIncluded = includedFoodIds.includes(right.id);
-
-    if (leftIncluded !== rightIncluded) {
-      return leftIncluded ? -1 : 1;
-    }
-
-    return left.name.localeCompare(right.name);
-  });
 
   const handleAdd = useCallback(
     (e: React.FormEvent) => {
@@ -109,7 +99,7 @@ export function FoodManager({
           <p className={styles.emptyText}>No foods match your search.</p>
         ) : (
           <ul className={styles.list} role="list">
-            {sortedItems.map((item) => {
+            {filteredItems.map((item) => {
               const isIncluded = includedFoodIds.includes(item.id);
 
               return (

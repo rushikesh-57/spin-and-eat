@@ -6,6 +6,7 @@ interface ResultDisplayProps {
   isSpinning: boolean;
   showHintWhenEmpty?: boolean;
   onDismiss?: () => void;
+  onSpinAgain?: () => void;
   asDialog?: boolean;
 }
 
@@ -14,14 +15,11 @@ export function ResultDisplay({
   isSpinning,
   showHintWhenEmpty = true,
   onDismiss,
+  onSpinAgain,
   asDialog = false,
 }: ResultDisplayProps) {
   if (isSpinning) {
-    return (
-      <div className={styles.wrapper} role="status" aria-live="polite" aria-busy="true">
-        <p className={styles.spinning}>Spinning...</p>
-      </div>
-    );
+    return null;
   }
 
   if (!item) {
@@ -50,11 +48,16 @@ export function ResultDisplay({
           onClick={onDismiss}
           aria-label="Close selected result"
         >
-          Close
+          x
         </button>
       ) : null}
       <p className={styles.label}>You got</p>
       <p className={styles.name}>{item.name}</p>
+      {asDialog && onSpinAgain ? (
+        <button type="button" className={styles.spinAgainButton} onClick={onSpinAgain}>
+          Spin again
+        </button>
+      ) : null}
     </div>
   );
 
