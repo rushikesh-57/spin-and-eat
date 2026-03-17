@@ -27,15 +27,16 @@ export function CookAtHome({ groceries }: Props) {
   const [mealError, setMealError] = useState<string | null>(null);
   const [lastGeneratedAt, setLastGeneratedAt] = useState<number | null>(null);
   const [showSuggestionPicker, setShowSuggestionPicker] = useState(false);
-  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(
-    () => new Set()
-  );
+  const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(() => new Set());
   const [wheelItems, setWheelItems] = useState<FoodItem[]>([]);
+  const [openSections, setOpenSections] = useState({
+    wheel: true,
+    ideas: true,
+  });
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(wheelItems);
 
   const availableGroceries = useMemo(
-    () =>
-      groceries.filter((item) => item.status !== 'out' && item.remainingQuantity > 0),
+    () => groceries.filter((item) => item.status !== 'out' && item.remainingQuantity > 0),
     [groceries]
   );
 
@@ -152,150 +153,189 @@ export function CookAtHome({ groceries }: Props) {
     });
   };
 
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   return (
     <section className={styles.section} aria-label="Cook at home suggestions">
-      <div className={styles.sectionHeader}>
-        <div>
-          <h2 className={styles.sectionTitle}>Cook at home</h2>
-          <p className={styles.sectionSubtitle}>Generate dishes from what is in your kitchen.</p>
-        </div>
-      </div>
+      <section className={styles.panelCard}>
+        <button
+          type="button"
+          className={styles.panelToggle}
+          onClick={() => toggleSection('wheel')}
+          aria-expanded={openSections.wheel}
+          aria-controls="cook-wheel-content"
+        >
+          <span className={styles.panelToggleText}>
+            <span className={styles.panelSectionTitle}>Cook wheel</span>
+            <span className={styles.panelSectionSubtitle}>
+              Spin a dish from your available home-cooking ideas.
+            </span>
+          </span>
+          <span className={styles.panelToggleIcon} aria-hidden="true">
+            {openSections.wheel ? 'Hide' : 'Show'}
+          </span>
+        </button>
+        {openSections.wheel ? (
+          <div id="cook-wheel-content" className={styles.panelContent}>
+            <div className={styles.wheelWrap}>
+              <FoodWheel
+                items={wheelItems}
+                rotation={rotation}
+                aria-label={`Wheel with ${wheelItems.length} cook-at-home options`}
+              />
+            </div>
+            <div className={styles.spinRow}>
+              <SpinButton
+                onClick={handleSpin}
+                disabled={isSpinning || wheelItems.length === 0}
+                aria-label="Spin the wheel to pick a cook-at-home option"
+              />
+            </div>
+            <ResultDisplay item={selectedItem} isSpinning={isSpinning} />
+          </div>
+        ) : null}
+      </section>
 
-      <div className={styles.card}>
-        <div className={styles.wheelWrap}>
-          <FoodWheel
-            items={wheelItems}
-            rotation={rotation}
-            aria-label={`Wheel with ${wheelItems.length} cook-at-home options`}
-          />
-        </div>
-        <div className={styles.spinRow}>
-          <SpinButton
-            onClick={handleSpin}
-            disabled={isSpinning || wheelItems.length === 0}
-            aria-label="Spin the wheel to pick a cook-at-home option"
-          />
-        </div>
-        <ResultDisplay item={selectedItem} isSpinning={isSpinning} />
-        <div className={styles.aiHeader}>
-          <div>
-            <h3 className={styles.listTitle}>Cook-at-home ideas</h3>
-            <p className={styles.listMeta}>
-              Generated from items marked available in your kitchen.
-            </p>
-          </div>
-          <div className={styles.listActions}>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={handleGenerateMeals}
-              disabled={isGeneratingMeals}
-            >
-              {isGeneratingMeals
-                ? 'Generating...'
-                : mealSuggestions.length > 0
-                  ? 'Regenerate ideas'
-                  : 'Generate ideas'}
-            </button>
-            <button
-              type="button"
-              className={styles.ghostButton}
-              onClick={() => setShowSuggestionPicker(true)}
-              disabled={mealSuggestions.length === 0}
-            >
-              Show on wheel
-            </button>
-            <button
-              type="button"
-              className={styles.ghostButton}
-              onClick={() => {
-                setMealSuggestions([]);
-                setMealError(null);
-                setLastGeneratedAt(null);
-                setShowSuggestionPicker(false);
-                try {
-                  localStorage.removeItem('spin-and-eat:meal-suggestions');
-                  localStorage.removeItem('spin-and-eat:meal-suggestions-time');
-                } catch {
-                  // ignore
-                }
-              }}
-              disabled={mealSuggestions.length === 0 && !mealError}
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-        {mealError ? <p className={styles.errorText}>{mealError}</p> : null}
-        {lastGeneratedAt ? (
-          <p className={styles.subtleMeta}>
-            Last generated {new Date(lastGeneratedAt).toLocaleTimeString()}
-          </p>
-        ) : null}
-        {mealSuggestions.length === 0 && !mealError ? (
-          <p className={styles.emptyText}>
-            Tap generate to get dishes you can cook with your current groceries.
-          </p>
-        ) : mealSuggestions.length > 0 ? (
-          <div className={styles.suggestionGrid}>
-            {mealSuggestions.map((suggestion) => (
-              <div key={suggestion} className={styles.suggestionCard}>
-                <div className={styles.suggestionTitle}>{suggestion}</div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {showSuggestionPicker && mealSuggestions.length > 0 ? (
-          <div className={styles.selectorPanel}>
-            <div className={styles.selectorHeader}>
-              <div>
-                <div className={styles.selectorTitle}>Pick dishes for the wheel</div>
-                <div className={styles.selectorMeta}>
-                  Select one or more suggestions to show on the wheel.
-                </div>
-              </div>
-              <button
-                type="button"
-                className={styles.linkButton}
-                onClick={handleToggleAllSuggestions}
-              >
-                {selectedSuggestions.size === mealSuggestions.length
-                  ? 'Clear all'
-                  : 'Select all'}
-              </button>
-            </div>
-            <div className={styles.selectorList}>
-              {mealSuggestions.map((suggestion) => (
-                <label key={suggestion} className={styles.selectorRow}>
-                  <input
-                    type="checkbox"
-                    checked={selectedSuggestions.has(suggestion)}
-                    onChange={() => toggleSuggestion(suggestion)}
-                  />
-                  <span>{suggestion}</span>
-                </label>
-              ))}
-            </div>
-            <div className={styles.selectorFooter}>
+      <section className={styles.panelCard}>
+        <button
+          type="button"
+          className={styles.panelToggle}
+          onClick={() => toggleSection('ideas')}
+          aria-expanded={openSections.ideas}
+          aria-controls="cook-ideas-content"
+        >
+          <span className={styles.panelToggleText}>
+            <span className={styles.panelSectionTitle}>Cook-at-home ideas</span>
+            <span className={styles.panelSectionSubtitle}>
+              Generate dishes from items marked available in your kitchen.
+            </span>
+          </span>
+          <span className={styles.panelToggleIcon} aria-hidden="true">
+            {openSections.ideas ? 'Hide' : 'Show'}
+          </span>
+        </button>
+        {openSections.ideas ? (
+          <div id="cook-ideas-content" className={styles.panelContent}>
+            <div className={styles.actionButtons}>
               <button
                 type="button"
                 className={styles.primaryButton}
-                onClick={handleApplySuggestionsToWheel}
-                disabled={selectedSuggestions.size === 0}
+                onClick={handleGenerateMeals}
+                disabled={isGeneratingMeals}
               >
-                Apply to wheel
+                {isGeneratingMeals
+                  ? 'Generating...'
+                  : mealSuggestions.length > 0
+                    ? 'Regenerate ideas'
+                    : 'Generate ideas'}
               </button>
               <button
                 type="button"
                 className={styles.ghostButton}
-                onClick={() => setShowSuggestionPicker(false)}
+                onClick={() => setShowSuggestionPicker(true)}
+                disabled={mealSuggestions.length === 0}
               >
-                Cancel
+                Show on wheel
+              </button>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={() => {
+                  setMealSuggestions([]);
+                  setMealError(null);
+                  setLastGeneratedAt(null);
+                  setShowSuggestionPicker(false);
+                  try {
+                    localStorage.removeItem('spin-and-eat:meal-suggestions');
+                    localStorage.removeItem('spin-and-eat:meal-suggestions-time');
+                  } catch {
+                    // ignore
+                  }
+                }}
+                disabled={mealSuggestions.length === 0 && !mealError}
+              >
+                Clear
               </button>
             </div>
+
+            {mealError ? <p className={styles.errorText}>{mealError}</p> : null}
+            {lastGeneratedAt ? (
+              <p className={styles.subtleMeta}>
+                Last generated {new Date(lastGeneratedAt).toLocaleTimeString()}
+              </p>
+            ) : null}
+            {mealSuggestions.length === 0 && !mealError ? (
+              <p className={styles.emptyText}>
+                Tap generate to get dishes you can cook with your current groceries.
+              </p>
+            ) : mealSuggestions.length > 0 ? (
+              <div className={styles.suggestionGrid}>
+                {mealSuggestions.map((suggestion) => (
+                  <div key={suggestion} className={styles.suggestionCard}>
+                    <div className={styles.suggestionTitle}>{suggestion}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {showSuggestionPicker && mealSuggestions.length > 0 ? (
+              <div className={styles.selectorPanel}>
+                <div className={styles.selectorHeader}>
+                  <div>
+                    <div className={styles.selectorTitle}>Pick dishes for the wheel</div>
+                    <div className={styles.selectorMeta}>
+                      Select one or more suggestions to show on the wheel.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.linkButton}
+                    onClick={handleToggleAllSuggestions}
+                  >
+                    {selectedSuggestions.size === mealSuggestions.length
+                      ? 'Clear all'
+                      : 'Select all'}
+                  </button>
+                </div>
+                <div className={styles.selectorList}>
+                  {mealSuggestions.map((suggestion) => (
+                    <label key={suggestion} className={styles.selectorRow}>
+                      <input
+                        type="checkbox"
+                        checked={selectedSuggestions.has(suggestion)}
+                        onChange={() => toggleSuggestion(suggestion)}
+                      />
+                      <span>{suggestion}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className={styles.selectorFooter}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={handleApplySuggestionsToWheel}
+                    disabled={selectedSuggestions.size === 0}
+                  >
+                    Apply to wheel
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.ghostButton}
+                    onClick={() => setShowSuggestionPicker(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
-      </div>
+      </section>
     </section>
   );
 }

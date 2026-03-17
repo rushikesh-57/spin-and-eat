@@ -1,63 +1,71 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 0.875rem;
 }
 
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sectionTitle {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.sectionSubtitle {
-  margin: 0.35rem 0 0;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-}
-
-.card {
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-  box-shadow: inset 0 0 0 1px var(--color-border);
+.panelCard {
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 0.875rem 1rem;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 0.75rem;
 }
 
-.aiHeader {
+.panelToggle {
+  width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-md);
-  margin-bottom: var(--space-sm);
+  gap: 0.75rem;
+  padding: 0;
+  border: none;
+  color: var(--color-text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
 }
 
-.listTitle {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
+.panelToggleText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.panelSectionTitle {
+  font-size: 1.05rem;
+  font-weight: 800;
   color: var(--color-text);
 }
 
-.listMeta {
-  margin: 0.25rem 0 0;
-  font-size: 0.85rem;
+.panelSectionSubtitle {
+  margin-top: 0.3rem;
+  font-size: 0.88rem;
   color: var(--color-text-muted);
 }
 
-.listActions {
+.panelToggleIcon {
+  flex-shrink: 0;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.panelContent {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.actionButtons {
+  display: flex;
   flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
 .wheelWrap {
@@ -93,7 +101,7 @@
 }
 
 .ghostButton {
-  background: var(--color-surface);
+  background: var(--color-surface-muted);
   color: var(--color-text);
 }
 
@@ -103,19 +111,18 @@
 
 .suggestionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-sm);
-  margin-top: var(--space-sm);
 }
 
 .suggestionCard {
-  background: var(--color-surface);
+  background: var(--color-surface-muted);
   border-radius: var(--radius-md);
-  padding: var(--space-sm);
+  padding: 0.7rem 0.8rem;
   border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .suggestionTitle {
@@ -124,33 +131,32 @@
 }
 
 .errorText {
-  margin: 0.25rem 0 0;
+  margin: 0;
   color: #b91c1c;
   font-weight: 600;
   font-size: 0.85rem;
 }
 
 .subtleMeta {
-  margin: 0.2rem 0 0;
+  margin: 0;
   font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 
 .emptyText {
-  margin: var(--space-md) 0 0;
+  margin: 0;
   font-size: 0.9rem;
   color: var(--color-text-muted);
 }
 
 .selectorPanel {
-  margin-top: var(--space-sm);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm);
-  border: 1px dashed var(--color-border);
-  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 0.85rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 0.75rem;
 }
 
 .selectorHeader {
@@ -179,9 +185,9 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.6rem;
   border-radius: var(--radius-md);
-  background: var(--color-surface-muted);
+  background: var(--color-surface);
   font-size: 0.85rem;
   color: var(--color-text);
 }
@@ -205,9 +211,26 @@
   color: var(--color-text);
 }
 
+@media (min-width: 1024px) {
+  .panelCard {
+    padding: 1.25rem;
+  }
+}
+
 @media (max-width: 640px) {
-  .aiHeader {
-    flex-direction: column;
+  .actionButtons {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.1rem;
+  }
+
+  .selectorHeader,
+  .selectorFooter {
     align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .suggestionGrid {
+    grid-template-columns: 1fr;
   }
 }
