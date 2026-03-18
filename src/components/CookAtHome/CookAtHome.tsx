@@ -25,14 +25,16 @@ export function CookAtHome({ groceries }: Props) {
   const [mealSuggestions, setMealSuggestions] = useState<MealSuggestion[]>([]);
   const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
   const [mealError, setMealError] = useState<string | null>(null);
-  const [lastGeneratedAt, setLastGeneratedAt] = useState<number | null>(null);
-  const [showSuggestionPicker, setShowSuggestionPicker] = useState(false);
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(() => new Set());
   const [wheelItems, setWheelItems] = useState<FoodItem[]>([]);
   const [openSections, setOpenSections] = useState({
     wheel: true,
     ideas: true,
   });
+  const [isMobileLayout, setIsMobileLayout] = useState(() =>
+    window.matchMedia('(max-width: 719px)').matches
+  );
+  const [showMobileResult, setShowMobileResult] = useState(false);
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(wheelItems);
 
   const availableGroceries = useMemo(
@@ -40,22 +42,23 @@ export function CookAtHome({ groceries }: Props) {
     [groceries]
   );
 
+  const suggestionRows = useMemo(
+    () => [
+      mealSuggestions.filter((_, index) => index % 2 === 0),
+      mealSuggestions.filter((_, index) => index % 2 === 1),
+    ],
+    [mealSuggestions]
+  );
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem('spin-and-eat:meal-suggestions');
-      const storedTime = localStorage.getItem('spin-and-eat:meal-suggestions-time');
       if (stored) {
         const parsed = JSON.parse(stored) as MealSuggestion[];
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMealSuggestions(parsed);
           setSelectedSuggestions(new Set(parsed));
           setWheelItems(buildWheelItems(parsed));
-        }
-      }
-      if (storedTime) {
-        const timeValue = Number(storedTime);
-        if (!Number.isNaN(timeValue)) {
-          setLastGeneratedAt(timeValue);
         }
       }
     } catch {
@@ -65,16 +68,43 @@ export function CookAtHome({ groceries }: Props) {
 
   useEffect(() => {
     if (mealSuggestions.length > 0) {
-      setSelectedSuggestions(new Set(mealSuggestions));
-      setWheelItems(buildWheelItems(mealSuggestions));
+      const nextSelected = new Set(mealSuggestions);
+      setSelectedSuggestions(nextSelected);
+      setWheelItems(buildWheelItems(Array.from(nextSelected)));
     }
   }, [mealSuggestions]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 719px)');
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobileLayout(event.matches);
+    };
+
+    setIsMobileLayout(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isSpinning) {
+      setShowMobileResult(false);
+      return;
+    }
+
+    if (isMobileLayout && selectedItem) {
+      setShowMobileResult(true);
+    }
+  }, [isMobileLayout, isSpinning, selectedItem]);
 
   const handleGenerateMeals = async () => {
     if (availableGroceries.length === 0) {
       setMealError('Add groceries marked available to generate cook-at-home options.');
       setMealSuggestions([]);
-      setShowSuggestionPicker(false);
+      setSelectedSuggestions(new Set());
+      setWheelItems([]);
       return;
     }
 
@@ -95,27 +125,17 @@ export function CookAtHome({ groceries }: Props) {
       } catch {
         // ignore
       }
-      setWheelItems(buildWheelItems(suggestions));
-      setShowSuggestionPicker(false);
-      const now = Date.now();
-      setLastGeneratedAt(now);
-      try {
-        localStorage.setItem('spin-and-eat:meal-suggestions-time', String(now));
-      } catch {
-        // ignore
-      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to generate meal ideas.';
       setMealError(message);
       setMealSuggestions([]);
+      setSelectedSuggestions(new Set());
       setWheelItems([]);
       try {
         localStorage.removeItem('spin-and-eat:meal-suggestions');
-        localStorage.removeItem('spin-and-eat:meal-suggestions-time');
       } catch {
         // ignore
       }
-      setShowSuggestionPicker(false);
     } finally {
       setIsGeneratingMeals(false);
     }
@@ -129,22 +149,9 @@ export function CookAtHome({ groceries }: Props) {
       } else {
         next.add(name);
       }
+      setWheelItems(buildWheelItems(Array.from(next)));
       return next;
     });
-  };
-
-  const handleToggleAllSuggestions = () => {
-    if (selectedSuggestions.size === mealSuggestions.length) {
-      setSelectedSuggestions(new Set());
-      return;
-    }
-    setSelectedSuggestions(new Set(mealSuggestions));
-  };
-
-  const handleApplySuggestionsToWheel = () => {
-    if (selectedSuggestions.size === 0) return;
-    setWheelItems(buildWheelItems(Array.from(selectedSuggestions)));
-    setShowSuggestionPicker(false);
   };
 
   const handleSpin = () => {
@@ -162,45 +169,6 @@ export function CookAtHome({ groceries }: Props) {
 
   return (
     <section className={styles.section} aria-label="Cook at home suggestions">
-      <section className={styles.panelCard}>
-        <button
-          type="button"
-          className={styles.panelToggle}
-          onClick={() => toggleSection('wheel')}
-          aria-expanded={openSections.wheel}
-          aria-controls="cook-wheel-content"
-        >
-          <span className={styles.panelToggleText}>
-            <span className={styles.panelSectionTitle}>Cook wheel</span>
-            <span className={styles.panelSectionSubtitle}>
-              Spin a dish from your available home-cooking ideas.
-            </span>
-          </span>
-          <span className={styles.panelToggleIcon} aria-hidden="true">
-            {openSections.wheel ? 'Hide' : 'Show'}
-          </span>
-        </button>
-        {openSections.wheel ? (
-          <div id="cook-wheel-content" className={styles.panelContent}>
-            <div className={styles.wheelWrap}>
-              <FoodWheel
-                items={wheelItems}
-                rotation={rotation}
-                aria-label={`Wheel with ${wheelItems.length} cook-at-home options`}
-              />
-            </div>
-            <div className={styles.spinRow}>
-              <SpinButton
-                onClick={handleSpin}
-                disabled={isSpinning || wheelItems.length === 0}
-                aria-label="Spin the wheel to pick a cook-at-home option"
-              />
-            </div>
-            <ResultDisplay item={selectedItem} isSpinning={isSpinning} />
-          </div>
-        ) : null}
-      </section>
-
       <section className={styles.panelCard}>
         <button
           type="button"
@@ -237,22 +205,13 @@ export function CookAtHome({ groceries }: Props) {
               <button
                 type="button"
                 className={styles.ghostButton}
-                onClick={() => setShowSuggestionPicker(true)}
-                disabled={mealSuggestions.length === 0}
-              >
-                Show on wheel
-              </button>
-              <button
-                type="button"
-                className={styles.ghostButton}
                 onClick={() => {
                   setMealSuggestions([]);
                   setMealError(null);
-                  setLastGeneratedAt(null);
-                  setShowSuggestionPicker(false);
+                  setSelectedSuggestions(new Set());
+                  setWheelItems([]);
                   try {
                     localStorage.removeItem('spin-and-eat:meal-suggestions');
-                    localStorage.removeItem('spin-and-eat:meal-suggestions-time');
                   } catch {
                     // ignore
                   }
@@ -264,78 +223,95 @@ export function CookAtHome({ groceries }: Props) {
             </div>
 
             {mealError ? <p className={styles.errorText}>{mealError}</p> : null}
-            {lastGeneratedAt ? (
-              <p className={styles.subtleMeta}>
-                Last generated {new Date(lastGeneratedAt).toLocaleTimeString()}
-              </p>
-            ) : null}
             {mealSuggestions.length === 0 && !mealError ? (
               <p className={styles.emptyText}>
                 Tap generate to get dishes you can cook with your current groceries.
               </p>
             ) : mealSuggestions.length > 0 ? (
-              <div className={styles.suggestionGrid}>
-                {mealSuggestions.map((suggestion) => (
-                  <div key={suggestion} className={styles.suggestionCard}>
-                    <div className={styles.suggestionTitle}>{suggestion}</div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {showSuggestionPicker && mealSuggestions.length > 0 ? (
-              <div className={styles.selectorPanel}>
-                <div className={styles.selectorHeader}>
-                  <div>
-                    <div className={styles.selectorTitle}>Pick dishes for the wheel</div>
-                    <div className={styles.selectorMeta}>
-                      Select one or more suggestions to show on the wheel.
+              <div className={styles.suggestionSection}>
+                <div className={styles.suggestionShelf}>
+                  {suggestionRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className={styles.suggestionRow} role="list">
+                      {row.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          className={`${styles.pillButton} ${
+                            selectedSuggestions.has(suggestion)
+                              ? styles.pillButtonActive
+                              : styles.pillButtonMuted
+                          }`}
+                          onClick={() => toggleSuggestion(suggestion)}
+                          aria-pressed={selectedSuggestions.has(suggestion)}
+                        >
+                          <span className={styles.suggestionTitle}>{suggestion}</span>
+                        </button>
+                      ))}
                     </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.linkButton}
-                    onClick={handleToggleAllSuggestions}
-                  >
-                    {selectedSuggestions.size === mealSuggestions.length
-                      ? 'Clear all'
-                      : 'Select all'}
-                  </button>
-                </div>
-                <div className={styles.selectorList}>
-                  {mealSuggestions.map((suggestion) => (
-                    <label key={suggestion} className={styles.selectorRow}>
-                      <input
-                        type="checkbox"
-                        checked={selectedSuggestions.has(suggestion)}
-                        onChange={() => toggleSuggestion(suggestion)}
-                      />
-                      <span>{suggestion}</span>
-                    </label>
                   ))}
-                </div>
-                <div className={styles.selectorFooter}>
-                  <button
-                    type="button"
-                    className={styles.primaryButton}
-                    onClick={handleApplySuggestionsToWheel}
-                    disabled={selectedSuggestions.size === 0}
-                  >
-                    Apply to wheel
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.ghostButton}
-                    onClick={() => setShowSuggestionPicker(false)}
-                  >
-                    Cancel
-                  </button>
                 </div>
               </div>
             ) : null}
           </div>
         ) : null}
       </section>
+
+      <section className={styles.panelCard}>
+        <button
+          type="button"
+          className={styles.panelToggle}
+          onClick={() => toggleSection('wheel')}
+          aria-expanded={openSections.wheel}
+          aria-controls="cook-wheel-content"
+        >
+          <span className={styles.panelToggleText}>
+            <span className={styles.panelSectionTitle}>Cook wheel</span>
+            <span className={styles.panelSectionSubtitle}>
+              Spin a dish from your available home-cooking ideas.
+            </span>
+          </span>
+          <span className={styles.panelToggleIcon} aria-hidden="true">
+            {openSections.wheel ? 'Hide' : 'Show'}
+          </span>
+        </button>
+        {openSections.wheel ? (
+          <div id="cook-wheel-content" className={styles.panelContent}>
+            <div className={styles.wheelWrap}>
+              <FoodWheel
+                items={wheelItems}
+                rotation={rotation}
+                aria-label={`Wheel with ${wheelItems.length} cook-at-home options`}
+              />
+            </div>
+            <div className={styles.spinRow}>
+              <SpinButton
+                onClick={handleSpin}
+                disabled={isSpinning || wheelItems.length === 0}
+                isSpinning={isSpinning}
+                aria-label="Spin the wheel to pick a cook-at-home option"
+              />
+            </div>
+            <ResultDisplay
+              item={isMobileLayout ? null : selectedItem}
+              isSpinning={isSpinning}
+              showHintWhenEmpty={!isMobileLayout}
+            />
+          </div>
+        ) : null}
+      </section>
+
+      {openSections.wheel && isMobileLayout && showMobileResult ? (
+        <ResultDisplay
+          item={selectedItem}
+          isSpinning={false}
+          asDialog
+          onDismiss={() => setShowMobileResult(false)}
+          onSpinAgain={() => {
+            setShowMobileResult(false);
+            handleSpin();
+          }}
+        />
+      ) : null}
     </section>
   );
 }
