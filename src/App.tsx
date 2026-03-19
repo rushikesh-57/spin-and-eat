@@ -10,17 +10,24 @@ import { FoodManager } from './components/FoodManager';
 import { SpinHistory } from './components/SpinHistory';
 import { Kitchen } from './components/Kitchen/Kitchen';
 import { CookAtHome } from './components/CookAtHome/CookAtHome';
+import { MakeYourOwnWheel } from './components/MakeYourOwnWheel/MakeYourOwnWheel';
 import { AppHeader } from './components/layout/AppHeader';
 import { TabBar } from './components/layout/TabBar';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { ProfilePanel } from './components/layout/ProfilePanel';
 import { playSpinCompleteSound } from './utils/sound';
 import {
+  DEFAULT_USER_PROFILE,
   loadOnboardingChoice,
+  loadUserProfile,
+  loadUserProfileStatus,
   saveOnboardingChoice,
+  saveUserProfile,
+  saveUserProfileStatus,
 } from './utils/storage';
 import { supabase } from './lib/supabaseClient';
 import styles from './App.module.css';
+import type { UserProfilePreferences, UserProfileSetupStatus } from './types';
 
 const THEME_STORAGE_KEY = 'spin-eat-theme';
 const MOBILE_LAYOUT_QUERY = '(max-width: 719px)';
@@ -28,10 +35,13 @@ const MOBILE_LAYOUT_QUERY = '(max-width: 719px)';
 function App() {
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'spin' | 'kitchen' | 'cook' | 'profile'>('spin');
+  const [activeTab, setActiveTab] = useState<'spin' | 'kitchen' | 'cook' | 'custom' | 'profile'>('spin');
   const [showLogin, setShowLogin] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfilePreferences>(DEFAULT_USER_PROFILE);
+  const [profileStatus, setProfileStatus] = useState<UserProfileSetupStatus | null>(null);
   const [isMobileLayout, setIsMobileLayout] = useState(() =>
     window.matchMedia(MOBILE_LAYOUT_QUERY).matches
   );
@@ -66,34 +76,56 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
+    const hydrateUserProfile = (nextUserId: string | null) => {
+      if (!nextUserId) {
+        setUserProfile(DEFAULT_USER_PROFILE);
+        setProfileStatus(null);
+        return;
+      }
+
+      setUserProfile(loadUserProfile(nextUserId));
+      setProfileStatus(loadUserProfileStatus(nextUserId));
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       if (!isMounted) {
         return;
       }
       const user = data.session?.user;
+      const nextUserId = user?.id ?? null;
       const nextName =
         user?.user_metadata?.full_name ||
         user?.user_metadata?.name ||
         user?.email ||
         null;
       setUserName(nextName);
+      setUserId(nextUserId);
+      setUserEmail(user?.email ?? null);
+      hydrateUserProfile(nextUserId);
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       const user = session?.user;
+      const nextUserId = user?.id ?? null;
       const nextName =
         user?.user_metadata?.full_name ||
         user?.user_metadata?.name ||
         user?.email ||
         null;
       setUserName(nextName);
-      setUserId(user?.id ?? null);
-      setUserId(user?.id ?? null);
+      setUserId(nextUserId);
+      setUserEmail(user?.email ?? null);
+      hydrateUserProfile(nextUserId);
       if (nextName) {
         setShowLogin(false);
         setAuthError(null);
+        if (event === 'SIGNED_IN' && nextUserId && !loadUserProfileStatus(nextUserId)) {
+          setActiveTab('profile');
+        }
+      } else {
+        setActiveTab('spin');
       }
     });
 
@@ -161,14 +193,40 @@ function App() {
   const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     setActiveTab('spin');
+    setUserProfile(DEFAULT_USER_PROFILE);
+    setProfileStatus(null);
+    setUserEmail(null);
   }, []);
+
+  const handleSaveProfile = useCallback(
+    (profile: UserProfilePreferences) => {
+      if (!userId) {
+        return;
+      }
+
+      setUserProfile(profile);
+      setProfileStatus('completed');
+      saveUserProfile(userId, profile);
+      saveUserProfileStatus(userId, 'completed');
+    },
+    [userId]
+  );
+
+  const handleSkipProfile = useCallback(() => {
+    if (!userId) {
+      return;
+    }
+
+    setProfileStatus('skipped');
+    saveUserProfileStatus(userId, 'skipped');
+  }, [userId]);
 
   const showAuthPage = !isLoggedIn && (showLogin || activeTab !== 'spin');
 
   const handleTabChange = useCallback(
-    (tab: 'spin' | 'kitchen' | 'cook' | 'profile') => {
+    (tab: 'spin' | 'kitchen' | 'cook' | 'custom' | 'profile') => {
       setActiveTab(tab);
-      if ((tab === 'kitchen' || tab === 'cook' || tab === 'profile') && !isLoggedIn) {
+      if ((tab === 'kitchen' || tab === 'cook' || tab === 'custom' || tab === 'profile') && !isLoggedIn) {
         setShowLogin(true);
         return;
       }
@@ -373,9 +431,18 @@ function App() {
               <section className={styles.cookPanel} aria-label="Cook at home">
                 <CookAtHome groceries={kitchen.items} />
               </section>
+            ) : activeTab === 'custom' ? (
+              <section className={styles.cookPanel} aria-label="Make your own wheel">
+                <MakeYourOwnWheel userId={userId} />
+              </section>
             ) : (
               <ProfilePanel
                 userName={userName}
+                userEmail={userEmail}
+                profile={userProfile}
+                profileStatus={profileStatus}
+                onSaveProfile={handleSaveProfile}
+                onSkipProfile={handleSkipProfile}
                 onLogout={handleLogout}
                 onClose={() => setActiveTab('spin')}
                 theme={theme}
@@ -394,7 +461,6 @@ function App() {
         <TabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onProfileClick={handleProfileClick}
         />
       ) : null}
 

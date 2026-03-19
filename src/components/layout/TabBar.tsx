@@ -1,12 +1,11 @@
 ﻿import styles from './TabBar.module.css';
 
 interface TabBarProps {
-  activeTab: 'spin' | 'kitchen' | 'cook' | 'profile';
-  onTabChange: (tab: 'spin' | 'kitchen' | 'cook' | 'profile') => void;
-  onProfileClick: () => void;
+  activeTab: 'spin' | 'kitchen' | 'cook' | 'custom' | 'profile';
+  onTabChange: (tab: 'spin' | 'kitchen' | 'cook' | 'custom' | 'profile') => void;
 }
 
-export function TabBar({ activeTab, onTabChange, onProfileClick }: TabBarProps) {
+export function TabBar({ activeTab, onTabChange }: TabBarProps) {
   return (
     <nav className={styles.tabBar} aria-label="Primary">
       <button
@@ -64,27 +63,28 @@ export function TabBar({ activeTab, onTabChange, onProfileClick }: TabBarProps) 
       </button>
       <button
         type="button"
-        className={activeTab === 'profile' ? styles.tabButtonActive : styles.tabButton}
-        onClick={onProfileClick}
-        aria-current={activeTab === 'profile' ? 'page' : undefined}
+        className={activeTab === 'custom' ? styles.tabButtonActive : styles.tabButton}
+        onClick={() => onTabChange('custom')}
+        aria-current={activeTab === 'custom' ? 'page' : undefined}
       >
         <span className={styles.tabIcon} aria-hidden="true">
           <svg viewBox="0 0 24 24" role="presentation">
             <path
-              d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4z"
+              d="M12 4v16"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
             />
             <path
-              d="M5 20a7 7 0 0 1 14 0"
+              d="M4 12h16"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
             />
+            <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
           </svg>
         </span>
-        <span className={styles.tabLabel}>Profile</span>
+        <span className={styles.tabLabel}>Make wheel</span>
       </button>
     </nav>
   );

@@ -3,8 +3,8 @@
 interface AppHeaderProps {
   isLoggedIn: boolean;
   userName: string | null;
-  activeTab: 'spin' | 'kitchen' | 'cook' | 'profile';
-  onTabChange: (tab: 'spin' | 'kitchen' | 'cook' | 'profile') => void;
+  activeTab: 'spin' | 'kitchen' | 'cook' | 'custom' | 'profile';
+  onTabChange: (tab: 'spin' | 'kitchen' | 'cook' | 'custom' | 'profile') => void;
   onLoginClick: () => void;
   onProfileClick: () => void;
   onLogout: () => void;
@@ -64,6 +64,13 @@ export function AppHeader({
             onClick={() => onTabChange('cook')}
           >
             Cook at home
+          </button>
+          <button
+            type="button"
+            className={activeTab === 'custom' ? styles.navButtonActive : styles.navButton}
+            onClick={() => onTabChange('custom')}
+          >
+            Make wheel
           </button>
         </nav>
 

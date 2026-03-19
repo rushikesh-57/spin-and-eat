@@ -1,0 +1,252 @@
+.layout {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    'controls'
+    'wheel';
+}
+
+.spinPanel {
+  grid-area: wheel;
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 1rem;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.controlsPanel {
+  grid-area: controls;
+  background: var(--color-surface);
+  border-radius: 20px;
+  padding: 0.875rem 1rem;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.panelSubtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.panelBadge {
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.wheelWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.spinRow {
+  display: flex;
+  justify-content: center;
+}
+
+.controlsToggle {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0;
+  border: none;
+  color: var(--color-text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.controlsToggleText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.controlsToggleIcon {
+  flex-shrink: 0;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.controlsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.controlsContentClosed {
+  display: none;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.addForm {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.addForm {
+  align-items: stretch;
+  flex-wrap: nowrap;
+}
+
+.input {
+  width: 100%;
+  flex: 1 1 auto;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised, var(--color-surface));
+  color: var(--color-text);
+  padding: 0.8rem 0.95rem;
+  font: inherit;
+}
+
+.input:focus {
+  outline: 2px solid rgba(249, 115, 22, 0.24);
+  outline-offset: 2px;
+}
+
+.addBtn,
+.clearBtn {
+  border: none;
+  border-radius: 999px;
+  padding: 0.75rem 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.addBtn {
+  flex: 0 0 auto;
+  background: #f97316;
+  color: #1f1f1f;
+  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.2);
+}
+
+.addBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.clearBtn {
+  align-self: flex-start;
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.item {
+  display: flex;
+}
+
+.pillButton,
+.pillButtonMuted {
+  border: none;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.pillButton {
+  background: rgba(249, 115, 22, 0.14);
+  color: #9a3412;
+}
+
+.pillButtonMuted {
+  background: rgba(148, 163, 184, 0.16);
+  color: var(--color-text-muted);
+}
+
+.itemName {
+  font-weight: 700;
+}
+
+.emptyText,
+.emptyHint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-width: 720px) {
+  .layout {
+    gap: 1.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'wheel controls';
+  }
+
+  .spinPanel,
+  .controlsPanel {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .spinPanel,
+  .controlsPanel {
+    padding: 1.75rem;
+  }
+}

@@ -1,20 +1,205 @@
-﻿import styles from './ProfilePanel.module.css';
+import { useEffect, useState } from 'react';
+import type {
+  DietPreference,
+  SpicePreference,
+  UserProfilePreferences,
+  UserProfileSetupStatus,
+} from '../../types';
+import styles from './ProfilePanel.module.css';
 
 interface ProfilePanelProps {
   userName: string | null;
+  userEmail: string | null;
+  profile: UserProfilePreferences;
+  profileStatus: UserProfileSetupStatus | null;
+  onSaveProfile: (profile: UserProfilePreferences) => void;
+  onSkipProfile: () => void;
   onLogout: () => void;
   onClose: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
 
-export function ProfilePanel({ userName, onLogout, onClose, theme, onToggleTheme }: ProfilePanelProps) {
+const DIET_OPTIONS: { value: DietPreference; label: string }[] = [
+  { value: 'no-preference', label: 'No preference' },
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'eggetarian', label: 'Eggetarian' },
+  { value: 'non-vegetarian', label: 'Non-vegetarian' },
+  { value: 'vegan', label: 'Vegan' },
+];
+
+const SPICE_OPTIONS: { value: SpicePreference; label: string }[] = [
+  { value: 'mild', label: 'Mild' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'spicy', label: 'Spicy' },
+];
+
+const formatPreference = (value: string) =>
+  value.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+export function ProfilePanel({
+  userName,
+  userEmail,
+  profile,
+  profileStatus,
+  onSaveProfile,
+  onSkipProfile,
+  onLogout,
+  onClose,
+  theme,
+  onToggleTheme,
+}: ProfilePanelProps) {
+  const [draft, setDraft] = useState(profile);
+  const [isEditing, setIsEditing] = useState(profileStatus === null);
+
+  useEffect(() => {
+    setDraft(profile);
+  }, [profile]);
+
+  useEffect(() => {
+    setIsEditing(profileStatus === null);
+  }, [profileStatus]);
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    onSaveProfile({
+      preferredName: draft.preferredName.trim(),
+      city: draft.city.trim(),
+      dietPreference: draft.dietPreference,
+      spicePreference: draft.spicePreference,
+    });
+    setIsEditing(false);
+  };
+
   return (
     <section className={styles.profileSection} aria-label="Profile">
       <div className={styles.profileCard}>
         <p className={styles.profileEyebrow}>Signed in</p>
         <h2 className={styles.profileTitle}>Profile</h2>
         <p className={styles.profileName}>{userName}</p>
+        {userEmail ? <p className={styles.profileMeta}>{userEmail}</p> : null}
+
+        <div className={styles.accountBlock}>
+          <p className={styles.blockTitle}>About you</p>
+          {profileStatus === 'completed' && !isEditing ? (
+            <div className={styles.summaryGrid}>
+              <div>
+                <p className={styles.summaryLabel}>Preferred name</p>
+                <p className={styles.summaryValue}>{profile.preferredName || userName || 'Not set'}</p>
+              </div>
+              <div>
+                <p className={styles.summaryLabel}>City</p>
+                <p className={styles.summaryValue}>{profile.city || 'Not set'}</p>
+              </div>
+              <div>
+                <p className={styles.summaryLabel}>Diet</p>
+                <p className={styles.summaryValue}>{formatPreference(profile.dietPreference)}</p>
+              </div>
+              <div>
+                <p className={styles.summaryLabel}>Spice level</p>
+                <p className={styles.summaryValue}>{formatPreference(profile.spicePreference)}</p>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.promptCard}>
+              <p className={styles.promptTitle}>Help personalize your experience</p>
+              <p className={styles.promptText}>
+                Share a few basics so Spin &amp; Eat can make better suggestions later. This is optional, and you can skip it for now.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {isEditing ? (
+          <form className={styles.form} onSubmit={handleSubmit}>
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Preferred name</span>
+              <input
+                type="text"
+                value={draft.preferredName}
+                onChange={(event) =>
+                  setDraft((prev) => ({ ...prev, preferredName: event.target.value }))
+                }
+                placeholder={userName ?? 'What should we call you?'}
+                className={styles.input}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>City</span>
+              <input
+                type="text"
+                value={draft.city}
+                onChange={(event) => setDraft((prev) => ({ ...prev, city: event.target.value }))}
+                placeholder="Optional"
+                className={styles.input}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Diet preference</span>
+              <select
+                value={draft.dietPreference}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    dietPreference: event.target.value as DietPreference,
+                  }))
+                }
+                className={styles.select}
+              >
+                {DIET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Spice preference</span>
+              <select
+                value={draft.spicePreference}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    spicePreference: event.target.value as SpicePreference,
+                  }))
+                }
+                className={styles.select}
+              >
+                {SPICE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className={styles.formActions}>
+              <button type="submit" className={styles.primaryButton}>
+                Save profile
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => {
+                  onSkipProfile();
+                  setIsEditing(false);
+                }}
+              >
+                Skip for now
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className={styles.inlineActions}>
+            <button type="button" className={styles.secondaryButton} onClick={() => setIsEditing(true)}>
+              {profileStatus === 'completed' ? 'Edit preferences' : 'Set up profile'}
+            </button>
+          </div>
+        )}
+
         <div className={styles.themeRow}>
           <div>
             <p className={styles.themeLabel}>Theme</p>
@@ -32,6 +217,7 @@ export function ProfilePanel({ userName, onLogout, onClose, theme, onToggleTheme
             </span>
           </button>
         </div>
+
         <div className={styles.profileActions}>
           <button type="button" className={styles.logoutButton} onClick={onLogout}>
             Log out

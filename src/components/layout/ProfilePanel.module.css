@@ -1,4 +1,4 @@
-﻿.profileSection {
+.profileSection {
   display: flex;
   justify-content: center;
   padding: 1.5rem 1rem 6rem;
@@ -6,7 +6,7 @@
 
 .profileCard {
   width: 100%;
-  max-width: 420px;
+  max-width: 560px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 20px;
@@ -14,7 +14,7 @@
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .profileEyebrow {
@@ -28,22 +28,142 @@
 
 .profileTitle {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: var(--color-text);
 }
 
 .profileName {
   margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.profileMeta {
+  margin: -0.55rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.accountBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.blockTitle {
+  margin: 0;
   font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.promptCard {
+  border-radius: 18px;
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(14, 165, 233, 0.08));
+  padding: 1rem;
+}
+
+.promptTitle {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.promptText {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
   color: var(--color-text-muted);
 }
 
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.summaryLabel {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+}
+
+.summaryValue {
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.fieldLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.input,
+.select {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised, var(--color-surface));
+  color: var(--color-text);
+  padding: 0.82rem 0.95rem;
+  font: inherit;
+}
+
+.input:focus,
+.select:focus {
+  outline: 2px solid rgba(249, 115, 22, 0.24);
+  outline-offset: 2px;
+}
+
+.formActions,
+.inlineActions,
 .profileActions {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.primaryButton,
+.secondaryButton,
+.logoutButton {
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.65rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryButton,
+.logoutButton {
+  color: #ffffff;
+  background: var(--color-accent);
+  box-shadow: var(--shadow-soft);
+}
+
+.secondaryButton {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 .themeRow {
@@ -51,7 +171,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.75rem 0;
+  padding: 0.9rem 0;
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
 }
@@ -92,18 +212,6 @@
   line-height: 1;
 }
 
-.logoutButton {
-  border: none;
-  border-radius: var(--radius-full);
-  padding: 0.6rem 1.2rem;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #ffffff;
-  background: var(--color-accent);
-  cursor: pointer;
-  box-shadow: var(--shadow-soft);
-}
-
 .closeButton {
   border: none;
   background: transparent;
@@ -111,4 +219,14 @@
   font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .profileCard {
+    padding: 1.2rem;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
 }

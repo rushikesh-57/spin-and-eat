@@ -4,10 +4,14 @@ import type {
   GroceryItem,
   GroceryStatus,
   GroceryFrequency,
+  UserProfilePreferences,
+  UserProfileSetupStatus,
 } from '../types';
 
 const STORAGE_KEYS = {
   FOOD_ITEMS: 'spin-and-eat:food-items',
+  CUSTOM_WHEEL_ITEMS: 'spin-and-eat:custom-wheel-items',
+  CUSTOM_WHEEL_INCLUDED_IDS: 'spin-and-eat:custom-wheel-included-ids',
   SPIN_HISTORY: 'spin-and-eat:spin-history',
   FEELING_LUCKY: 'spin-and-eat:feeling-lucky',
   ACTIVE_CATEGORIES: 'spin-and-eat:active-categories',
@@ -16,6 +20,8 @@ const STORAGE_KEYS = {
   GROCERIES: 'spin-and-eat:groceries',
   ONBOARDING_CHOICE: 'spin-and-eat:onboarding-choice',
   WHEEL_OVERRIDE: 'spin-and-eat:wheel-override',
+  USER_PROFILE: 'spin-and-eat:user-profile',
+  USER_PROFILE_STATUS: 'spin-and-eat:user-profile-status',
 } as const;
 
 export type OnboardingChoice = 'default' | 'custom' | 'done';
@@ -24,6 +30,19 @@ const onboardingKey = (userId: string) => `${STORAGE_KEYS.ONBOARDING_CHOICE}:${u
 const wheelOverrideKey = (userId: string) => `${STORAGE_KEYS.WHEEL_OVERRIDE}:${userId}`;
 const includedFoodIdsKey = (userId: string | null) =>
   `${STORAGE_KEYS.INCLUDED_FOOD_IDS}:${userId ?? 'guest'}`;
+const customWheelItemsKey = (userId: string | null) =>
+  `${STORAGE_KEYS.CUSTOM_WHEEL_ITEMS}:${userId ?? 'guest'}`;
+const customWheelIncludedIdsKey = (userId: string | null) =>
+  `${STORAGE_KEYS.CUSTOM_WHEEL_INCLUDED_IDS}:${userId ?? 'guest'}`;
+const userProfileKey = (userId: string) => `${STORAGE_KEYS.USER_PROFILE}:${userId}`;
+const userProfileStatusKey = (userId: string) => `${STORAGE_KEYS.USER_PROFILE_STATUS}:${userId}`;
+
+export const DEFAULT_USER_PROFILE: UserProfilePreferences = {
+  preferredName: '',
+  city: '',
+  dietPreference: 'no-preference',
+  spicePreference: 'medium',
+};
 
 export function loadOnboardingChoice(userId: string): OnboardingChoice | null {
   try {
@@ -80,6 +99,101 @@ export function loadFoodItems(fallback: FoodItem[]): FoodItem[] {
 export function saveFoodItems(items: FoodItem[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.FOOD_ITEMS, JSON.stringify(items));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadCustomWheelItems(userId: string | null): FoodItem[] {
+  try {
+    const raw = localStorage.getItem(customWheelItemsKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as FoodItem[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomWheelItems(userId: string | null, items: FoodItem[]): void {
+  try {
+    localStorage.setItem(customWheelItemsKey(userId), JSON.stringify(items));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadCustomWheelIncludedIds(userId: string | null): string[] | null {
+  try {
+    const raw = localStorage.getItem(customWheelIncludedIdsKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as string[];
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveCustomWheelIncludedIds(userId: string | null, ids: string[]): void {
+  try {
+    localStorage.setItem(customWheelIncludedIdsKey(userId), JSON.stringify(ids));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadUserProfile(userId: string): UserProfilePreferences {
+  try {
+    const raw = localStorage.getItem(userProfileKey(userId));
+    if (!raw) return DEFAULT_USER_PROFILE;
+    const parsed = JSON.parse(raw) as Partial<UserProfilePreferences>;
+    return {
+      preferredName:
+        typeof parsed.preferredName === 'string' ? parsed.preferredName : DEFAULT_USER_PROFILE.preferredName,
+      city: typeof parsed.city === 'string' ? parsed.city : DEFAULT_USER_PROFILE.city,
+      dietPreference:
+        parsed.dietPreference === 'vegetarian' ||
+        parsed.dietPreference === 'eggetarian' ||
+        parsed.dietPreference === 'non-vegetarian' ||
+        parsed.dietPreference === 'vegan' ||
+        parsed.dietPreference === 'no-preference'
+          ? parsed.dietPreference
+          : DEFAULT_USER_PROFILE.dietPreference,
+      spicePreference:
+        parsed.spicePreference === 'mild' ||
+        parsed.spicePreference === 'medium' ||
+        parsed.spicePreference === 'spicy'
+          ? parsed.spicePreference
+          : DEFAULT_USER_PROFILE.spicePreference,
+    };
+  } catch {
+    return DEFAULT_USER_PROFILE;
+  }
+}
+
+export function saveUserProfile(userId: string, profile: UserProfilePreferences): void {
+  try {
+    localStorage.setItem(userProfileKey(userId), JSON.stringify(profile));
+  } catch {
+    // ignore
+  }
+}
+
+export function loadUserProfileStatus(userId: string): UserProfileSetupStatus | null {
+  try {
+    const raw = localStorage.getItem(userProfileStatusKey(userId));
+    if (raw === 'skipped' || raw === 'completed') {
+      return raw;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveUserProfileStatus(userId: string, status: UserProfileSetupStatus): void {
+  try {
+    localStorage.setItem(userProfileStatusKey(userId), status);
   } catch {
     // ignore
   }

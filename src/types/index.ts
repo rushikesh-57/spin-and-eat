@@ -8,6 +8,24 @@ export interface FoodItem {
   source: FoodSource;
 }
 
+export type DietPreference =
+  | 'no-preference'
+  | 'vegetarian'
+  | 'eggetarian'
+  | 'non-vegetarian'
+  | 'vegan';
+
+export type SpicePreference = 'mild' | 'medium' | 'spicy';
+
+export interface UserProfilePreferences {
+  preferredName: string;
+  city: string;
+  dietPreference: DietPreference;
+  spicePreference: SpicePreference;
+}
+
+export type UserProfileSetupStatus = 'skipped' | 'completed';
+
 export interface SpinHistoryEntry {
   foodName: string;
   category: FoodCategory;
