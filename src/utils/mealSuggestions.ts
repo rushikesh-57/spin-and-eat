@@ -8,14 +8,21 @@ type GroceryInput = {
   status: string;
 };
 
+type GenerateMealSuggestionsOptions = {
+  maxSuggestions?: number;
+  excludeSuggestions?: string[];
+};
+
 export async function generateMealSuggestions(
   groceries: GroceryInput[],
-  maxSuggestions = 10
+  options: GenerateMealSuggestionsOptions = {}
 ): Promise<MealSuggestion[]> {
+  const { maxSuggestions = 10, excludeSuggestions = [] } = options;
   const { data, error } = await supabase.functions.invoke('meal-suggestions', {
     body: {
       groceries,
       maxSuggestions,
+      excludeSuggestions,
     },
   });
 

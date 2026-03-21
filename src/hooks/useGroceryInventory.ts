@@ -231,14 +231,14 @@ export function useGroceryInventory(userId: string | null) {
               typeof updates.remainingQuantity === 'number'
                 ? updates.remainingQuantity
                 : item.remainingQuantity;
+            const resolvedRemaining =
+              typeof updates.remainingQuantity === 'number'
+                ? updates.remainingQuantity
+                : applyStatusToRemaining(nextStatus, nextOrdered, nextRemaining);
             return {
               ...item,
               ...updates,
-              remainingQuantity: applyStatusToRemaining(
-                nextStatus,
-                nextOrdered,
-                nextRemaining
-              ),
+              remainingQuantity: resolvedRemaining,
             };
           })
         );
@@ -273,7 +273,7 @@ export function useGroceryInventory(userId: string | null) {
       const statusForAuto =
         updates.status ?? items.find((item) => item.id === id)?.status ?? 'available';
 
-      if (payload.status) {
+      if (payload.status && typeof updates.remainingQuantity !== 'number') {
         payload.remaining_quantity = applyStatusToRemaining(
           statusForAuto,
           orderedForAuto,

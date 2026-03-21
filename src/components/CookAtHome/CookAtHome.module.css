@@ -1,7 +1,7 @@
-.section {
+﻿.section {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 0.75rem;
 }
 
 .panelCard {
@@ -12,7 +12,7 @@
   border: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.7rem;
 }
 
 .panelToggle {
@@ -36,36 +36,68 @@
 }
 
 .panelSectionTitle {
-  font-size: 1.05rem;
+  font-size: 1.02rem;
   font-weight: 800;
   color: var(--color-text);
 }
 
 .panelSectionSubtitle {
-  margin-top: 0.3rem;
-  font-size: 0.88rem;
+  margin-top: 0.2rem;
+  font-size: 0.82rem;
   color: var(--color-text-muted);
 }
 
 .panelToggleIcon {
   flex-shrink: 0;
-  padding: 0.35rem 0.8rem;
+  padding: 0.3rem 0.72rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
 .panelContent {
   display: flex;
   flex-direction: column;
-  gap: 0.875rem;
+  gap: 0.75rem;
 }
 
-.actionButtons {
+.modeSwitch,
+.actionButtons,
+.inputRow {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.45rem;
+  align-items: center;
+}
+
+.modeSwitch {
+  padding: 0.22rem;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+}
+
+.modeButton {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 0.48rem 0.72rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.modeButtonActive {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-soft);
+}
+
+.actionGrow {
+  flex: 1;
 }
 
 .wheelWrap {
@@ -82,8 +114,8 @@
 .ghostButton {
   border: none;
   border-radius: var(--radius-full);
-  padding: 0.45rem 0.85rem;
-  font-size: 0.8rem;
+  padding: 0.45rem 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease;
@@ -109,25 +141,32 @@
   transform: translateY(-1px);
 }
 
+.primaryButton:disabled,
+.ghostButton:disabled,
+.modeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .suggestionSection {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .suggestionShelf {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.42rem;
   overflow-x: auto;
   overflow-y: hidden;
-  padding-bottom: 0.2rem;
+  padding-bottom: 0.1rem;
   scrollbar-width: thin;
 }
 
 .suggestionRow {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.45rem;
   width: max-content;
 }
 
@@ -135,14 +174,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.38rem 0.62rem;
+  padding: 0.34rem 0.58rem;
   border-radius: 999px;
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
   white-space: nowrap;
-  scroll-snap-align: start;
 }
 
 .pillButtonActive {
@@ -165,44 +203,341 @@
 
 .suggestionTitle {
   font-weight: 600;
+  font-size: 0.84rem;
+}
+
+.composeCard,
+.reviewCard {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  border-radius: 16px;
+  padding: 0.8rem;
+}
+
+.composeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.textInput {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 0.72rem 0.88rem;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.reviewHeader,
+.summaryRow,
+.ingredientRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.reviewMeta,
+.reviewMeta,
+.ingredientMeta,
+.ingredientNote,
+.summaryItemMeta,
+.warningText,
+.successText,
+.errorText,
+.emptyText {
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.reviewTitle,
+.summaryTitle,
+.ingredientName,
+.summaryItemName {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.reviewTitle {
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+.reviewCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-height: calc(100vh - 2rem);
+}
+
+.reviewCloseButton {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  width: 1.95rem;
+  height: 1.95rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reviewScrollArea {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding-right: 0.15rem;
+}
+
+.reviewOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.46);
+  backdrop-filter: blur(6px);
+}
+
+.reviewDialog {
+  width: min(100%, 540px);
+  max-height: calc(100vh - 2rem);
+}
+
+.reviewHeader,
+.summaryRow,
+.ingredientRow {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.summaryRow:last-child,
+.ingredientRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ingredientList,
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ingredientStatusBlock,
+.summaryNumbers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.ingredientMain,
+.ingredientSide {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.ingredientMain {
+  flex: 1;
+}
+
+.ingredientSide {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.matchPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.22rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.matchReady {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.matchLow {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+}
+
+.matchMissing {
+  background: rgba(239, 68, 68, 0.14);
+  color: #b91c1c;
+}
+
+.summaryTitle {
   font-size: 0.9rem;
+  font-weight: 800;
+  margin-bottom: 0.35rem;
+}
+
+.reviewMeta,
+.ingredientMeta,
+.ingredientNote,
+.summaryItemMeta,
+.emptyText {
+  color: var(--color-text-muted);
+}
+
+.warningText {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.summaryDelta {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.reviewFooter {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 0.55rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+
+.reviewFooter .primaryButton,
+.reviewFooter .ghostButton {
+  flex: 1;
+}
+
+.successText {
+  color: #047857;
+  font-weight: 700;
 }
 
 .errorText {
-  margin: 0;
   color: #b91c1c;
   font-weight: 600;
-  font-size: 0.85rem;
-}
-
-.emptyText {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
 }
 
 @media (min-width: 1024px) {
   .panelCard {
-    padding: 1.25rem;
+    padding: 1.15rem;
   }
 }
 
 @media (max-width: 640px) {
-  .actionButtons {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.1rem;
+  .panelCard {
+    padding: 0.72rem 0.78rem;
+    border-radius: 16px;
   }
 
-  .suggestionShelf {
+  .modeSwitch,
+  .actionButtons,
+  .inputRow,
+  .reviewHeader,
+  .summaryRow,
+  .ingredientRow {
+    width: 100%;
+  }
+
+  .modeButton,
+  .actionGrow {
+    flex: 1 1 0;
+  }
+
+  .panelContent,
+  .reviewCard,
+  .composeCard {
+    gap: 0.65rem;
+  }
+
+  .reviewDialog {
+    width: min(100%, 100%);
+    max-height: calc(100vh - 2.6rem);
+  }
+
+  .reviewCard {
+    max-height: calc(100vh - 2.6rem);
+    padding: 0.72rem 0.72rem 0.6rem;
+    gap: 0.5rem;
+  }
+
+  .ingredientList,
+  .summaryList {
     gap: 0.4rem;
   }
 
-  .suggestionRow {
-    gap: 0.4rem;
+  .reviewHeader,
+  .summaryRow,
+  .ingredientRow {
+    padding-bottom: 0.38rem;
+  }
+
+  .inputRow,
+  .reviewHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ingredientRow,
+  .summaryRow {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .ingredientMain,
+  .ingredientSide {
+    gap: 0.35rem;
+  }
+
+  .ingredientName,
+  .summaryItemName {
+    font-size: 0.83rem;
+  }
+
+  .ingredientMeta,
+  .summaryItemMeta,
+  .summaryDelta,
+  .ingredientNote {
+    font-size: 0.76rem;
+  }
+
+  .ingredientStatusBlock,
+  .summaryNumbers,
+  .ingredientSide {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .reviewCloseButton {
+    top: 0.55rem;
+    right: 0.55rem;
+  }
+
+  .reviewFooter {
+    gap: 0.45rem;
+    padding-top: 0.55rem;
   }
 
   .pillButton {
-    padding: 0.34rem 0.56rem;
+    padding: 0.32rem 0.52rem;
   }
 }

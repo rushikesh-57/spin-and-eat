@@ -8,6 +8,8 @@ interface ResultDisplayProps {
   onDismiss?: () => void;
   onSpinAgain?: () => void;
   asDialog?: boolean;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 export function ResultDisplay({
@@ -17,6 +19,8 @@ export function ResultDisplay({
   onDismiss,
   onSpinAgain,
   asDialog = false,
+  actionLabel,
+  onAction,
 }: ResultDisplayProps) {
   if (isSpinning) {
     return null;
@@ -53,6 +57,11 @@ export function ResultDisplay({
       ) : null}
       <p className={styles.label}>You got</p>
       <p className={styles.name}>{item.name}</p>
+      {actionLabel && onAction ? (
+        <button type="button" className={styles.primaryActionButton} onClick={onAction}>
+          {actionLabel}
+        </button>
+      ) : null}
       {asDialog && onSpinAgain ? (
         <button type="button" className={styles.spinAgainButton} onClick={onSpinAgain}>
           Spin again

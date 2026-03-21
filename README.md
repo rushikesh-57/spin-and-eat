@@ -119,8 +119,10 @@ copy supabase\\functions\\.env.example supabase\\functions\\.env
 Then edit `supabase/functions/.env` and set:
 
 ```
-GEMINI_API_KEY=your_google_ai_studio_key
-GEMINI_MODEL=gemini-2.5-flash
+OPENROUTER_API_KEY=your_openrouter_api_key
+OPENROUTER_MODEL=openai/gpt-4.1-mini
+OPENROUTER_APP_URL=https://your-app-url.example
+OPENROUTER_APP_TITLE=Spin and Eat
 ```
 
 4. Start Supabase locally and serve the function:

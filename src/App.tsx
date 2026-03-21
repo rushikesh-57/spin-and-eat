@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFoodItems } from './hooks/useFoodItems';
 import { useSpinHistory } from './hooks/useSpinHistory';
 import { useWheelSpin } from './hooks/useWheelSpin';
@@ -429,7 +429,7 @@ function App() {
               </section>
             ) : activeTab === 'cook' ? (
               <section className={styles.cookPanel} aria-label="Cook at home">
-                <CookAtHome groceries={kitchen.items} />
+                <CookAtHome groceries={kitchen.items} onUpdateGrocery={kitchen.updateItem} />
               </section>
             ) : activeTab === 'custom' ? (
               <section className={styles.cookPanel} aria-label="Make your own wheel">
@@ -481,3 +481,4 @@ function App() {
 }
 
 export default App;
+

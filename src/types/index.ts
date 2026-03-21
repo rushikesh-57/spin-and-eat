@@ -45,6 +45,20 @@ export interface GroceryItem {
 
 export type MealSuggestion = string;
 
+export type DishIngredientImportance = 'essential' | 'recommended';
+
+export interface DishIngredientRequirement {
+  name: string;
+  quantity: number;
+  unit: string;
+  importance: DishIngredientImportance;
+}
+
+export interface DishIngredientAnalysis {
+  dish: string;
+  ingredients: DishIngredientRequirement[];
+}
+
 export type GroceryStatus = 'available' | 'low' | 'out';
 export type GroceryFrequency = 'weekly' | 'monthly' | 'adhoc';
 
