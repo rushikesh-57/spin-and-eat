@@ -6,6 +6,7 @@ import type {
   GroceryItem,
   GroceryStatus,
   MealSuggestion,
+  UserProfilePreferences,
 } from '../../types';
 import { useWheelSpin } from '../../hooks/useWheelSpin';
 import { FoodWheel } from '../FoodWheel';
@@ -14,12 +15,15 @@ import { ResultDisplay } from '../ResultDisplay';
 import { generateMealSuggestions } from '../../utils/mealSuggestions';
 import { analyzeDishGroceries } from '../../utils/dishGroceries';
 import { generateId } from '../../utils/id';
+import { formatQuantity, resolveRequirementQuantityForInventory } from '../../utils/ingredientUnits';
 import { playSpinCompleteSound } from '../../utils/sound';
 import styles from './CookAtHome.module.css';
 
 type Props = {
   groceries: GroceryItem[];
   onUpdateGrocery: (id: string, updates: Partial<Omit<GroceryItem, 'id'>>) => Promise<void> | void;
+  defaultServings: number;
+  userProfile: UserProfilePreferences;
 };
 
 type Mode = 'ideas' | 'manual';
@@ -80,54 +84,6 @@ const getIngredientAliases = (value: string) => {
   bracketParts.forEach((part) => aliases.add(part));
 
   return Array.from(aliases);
-};
-
-const UNIT_ALIASES: Record<string, string> = {
-  kilogram: 'kg',
-  kilograms: 'kg',
-  kilo: 'kg',
-  kilos: 'kg',
-  kg: 'kg',
-  gram: 'g',
-  grams: 'g',
-  g: 'g',
-  litre: 'l',
-  litres: 'l',
-  liter: 'l',
-  liters: 'l',
-  l: 'l',
-  millilitre: 'ml',
-  millilitres: 'ml',
-  milliliter: 'ml',
-  milliliters: 'ml',
-  ml: 'ml',
-  piece: 'pcs',
-  pieces: 'pcs',
-  pc: 'pcs',
-  pcs: 'pcs',
-  unit: 'pcs',
-  units: 'pcs',
-  pack: 'packs',
-  packs: 'packs',
-  packet: 'packs',
-  packets: 'packs',
-  jar: 'jar',
-  jars: 'jar',
-  bunch: 'bunch',
-  bunches: 'bunch',
-};
-
-const convertQuantity = (quantity: number, fromUnit: string, toUnit: string) => {
-  const from = UNIT_ALIASES[fromUnit.trim().toLowerCase()] ?? fromUnit.trim().toLowerCase();
-  const to = UNIT_ALIASES[toUnit.trim().toLowerCase()] ?? toUnit.trim().toLowerCase();
-
-  if (from === to) return quantity;
-  if (from === 'kg' && to === 'g') return quantity * 1000;
-  if (from === 'g' && to === 'kg') return quantity / 1000;
-  if (from === 'l' && to === 'ml') return quantity * 1000;
-  if (from === 'ml' && to === 'l') return quantity / 1000;
-
-  return null;
 };
 
 const scoreIngredientMatch = (requirementName: string, groceryName: string) => {
@@ -207,12 +163,8 @@ const buildRequirementPreview = (
         };
       }
 
-      const matchedQuantity = convertQuantity(
-        requirement.quantity,
-        requirement.unit,
-        matchedItem.unit
-      );
-      if (matchedQuantity === null) {
+      const resolvedQuantity = resolveRequirementQuantityForInventory(requirement, matchedItem);
+      if (resolvedQuantity === null) {
         return {
           requirement,
           matchedItem,
@@ -223,6 +175,7 @@ const buildRequirementPreview = (
         };
       }
 
+      const matchedQuantity = resolvedQuantity.quantity;
       const enoughStock = matchedItem.remainingQuantity >= matchedQuantity;
       const status: RequirementPreview['status'] = enoughStock ? 'ready' : 'low';
 
@@ -243,8 +196,8 @@ const buildRequirementPreview = (
         enoughStock,
         status,
         note: enoughStock
-          ? `${matchedQuantity.toFixed(2).replace(/\.00$/, '')} ${matchedItem.unit}`
-          : `Only ${matchedItem.remainingQuantity} ${matchedItem.unit}`,
+          ? `${formatQuantity(matchedQuantity)} ${matchedItem.unit}${resolvedQuantity.estimated ? ' est.' : ''} from ${resolvedQuantity.note}`
+          : `Only ${formatQuantity(matchedItem.remainingQuantity)} ${matchedItem.unit} left`,
       };
     }
   );
@@ -268,7 +221,12 @@ const buildRequirementPreview = (
   return { requirements, inventoryUpdates };
 };
 
-export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
+export function CookAtHome({
+  groceries,
+  onUpdateGrocery,
+  defaultServings,
+  userProfile,
+}: Props) {
   const [mode, setMode] = useState<Mode>('ideas');
   const [mealSuggestions, setMealSuggestions] = useState<MealSuggestion[]>([]);
   const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
@@ -276,7 +234,9 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
   const [selectedSuggestions, setSelectedSuggestions] = useState<Set<string>>(() => new Set());
   const [wheelItems, setWheelItems] = useState<FoodItem[]>([]);
   const [dishInput, setDishInput] = useState('');
+  const [servings, setServings] = useState(() => Math.max(1, Math.round(defaultServings || 1)));
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
+  const [analysisServings, setAnalysisServings] = useState<number | null>(null);
   const [dishAnalysis, setDishAnalysis] = useState<DishIngredientAnalysis | null>(null);
   const [dishError, setDishError] = useState<string | null>(null);
   const [dishSuccess, setDishSuccess] = useState<string | null>(null);
@@ -318,8 +278,16 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
     setShowMobileResult(false);
     setMode('manual');
     setDishInput(dishName);
-    void handleReviewDish(dishName);
+    setSelectedDish(dishName);
+    setDishAnalysis(null);
+    setAnalysisServings(null);
+    setDishError(null);
+    setDishSuccess(null);
   };
+
+  useEffect(() => {
+    setServings(Math.max(1, Math.round(defaultServings || 1)));
+  }, [defaultServings]);
 
   useEffect(() => {
     try {
@@ -390,6 +358,7 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
           unit: item.unit,
           status: item.status,
         })),
+        userProfile,
         {
           maxSuggestions: 10,
           excludeSuggestions,
@@ -431,7 +400,8 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
     }
   };
 
-  const handleReviewDish = async (dishName: string) => {
+  const handleReviewDish = async () => {
+    const dishName = dishInput;
     const trimmedDish = dishName.trim();
     if (!trimmedDish) {
       setDishError('Enter a dish.');
@@ -441,10 +411,13 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
       return;
     }
 
+    const normalizedServings = Math.max(1, Math.round(servings || 1));
+
     setIsAnalyzingDish(true);
     setDishError(null);
     setDishSuccess(null);
     setSelectedDish(trimmedDish);
+    setAnalysisServings(normalizedServings);
 
     try {
       const analysis = await analyzeDishGroceries(
@@ -454,7 +427,9 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
           remainingQuantity: item.remainingQuantity,
           unit: item.unit,
           status: item.status,
-        }))
+        })),
+        normalizedServings,
+        userProfile
       );
       setDishAnalysis(analysis);
     } catch (error) {
@@ -513,7 +488,11 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
           )
         )
       );
-      setDishSuccess(`Updated for ${selectedDish}.`);
+      setDishSuccess(
+        `Updated for ${selectedDish} (${analysisServings ?? servings} ${
+          (analysisServings ?? servings) === 1 ? 'person' : 'people'
+        }).`
+      );
       setDishAnalysis(null);
     } catch (error) {
       const message =
@@ -642,17 +621,61 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
                     className={styles.textInput}
                     placeholder="Dish name"
                     value={dishInput}
-                    onChange={(event) => setDishInput(event.target.value)}
+                    onChange={(event) => {
+                      setDishInput(event.target.value);
+                      setSelectedDish(event.target.value.trim() || null);
+                      setDishAnalysis(null);
+                      setAnalysisServings(null);
+                      setDishError(null);
+                      setDishSuccess(null);
+                    }}
                   />
+                  <div className={styles.servingsControl} aria-label="Number of people">
+                    <button
+                      type="button"
+                      className={styles.servingsButton}
+                      onClick={() => {
+                        setServings((prev) => Math.max(1, prev - 1));
+                        setDishAnalysis(null);
+                        setAnalysisServings(null);
+                        setDishError(null);
+                        setDishSuccess(null);
+                      }}
+                      disabled={servings <= 1}
+                      aria-label="Decrease number of people"
+                    >
+                      -
+                    </button>
+                    <span className={styles.servingsValue}>
+                      {servings} {servings === 1 ? 'person' : 'people'}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.servingsButton}
+                      onClick={() => {
+                        setServings((prev) => prev + 1);
+                        setDishAnalysis(null);
+                        setAnalysisServings(null);
+                        setDishError(null);
+                        setDishSuccess(null);
+                      }}
+                      aria-label="Increase number of people"
+                    >
+                      +
+                    </button>
+                  </div>
                   <button
                     type="button"
                     className={styles.primaryButton}
-                    onClick={() => void handleReviewDish(dishInput)}
+                    onClick={() => void handleReviewDish()}
                     disabled={isAnalyzingDish}
                   >
-                    {isAnalyzingDish ? 'Checking...' : 'Check'}
+                    {isAnalyzingDish ? 'Getting...' : 'Get ingredients'}
                   </button>
                 </div>
+                <p className={styles.emptyText}>
+                  Quantities will be calculated for {servings} {servings === 1 ? 'person' : 'people'}.
+                </p>
               </div>
             )}
             {dishError ? <p className={styles.errorText}>{dishError}</p> : null}
@@ -699,7 +722,7 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
               item={isMobileLayout ? null : selectedItem}
               isSpinning={isSpinning}
               showHintWhenEmpty={!isMobileLayout}
-              actionLabel={selectedItem ? `Cook ${selectedItem.name}` : undefined}
+              actionLabel={selectedItem ? `Use ${selectedItem.name}` : undefined}
               onAction={selectedItem ? () => handleCookSelectedDish(selectedItem.name) : undefined}
             />
           </div>
@@ -720,6 +743,7 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
                 className={styles.reviewCloseButton}
                 onClick={() => {
                   setDishAnalysis(null);
+                  setAnalysisServings(null);
                   setDishError(null);
                 }}
                 aria-label="Close ingredient review"
@@ -729,7 +753,10 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
               <div className={styles.reviewHeader}>
                 <div>
                   <h3 className={styles.reviewTitle}>{selectedDish ?? 'Dish'} ingredients</h3>
-                  <p className={styles.reviewMeta}>{preview.requirements.length} items</p>
+                  <p className={styles.reviewMeta}>
+                    {preview.requirements.length} items for {analysisServings ?? servings}{' '}
+                    {((analysisServings ?? servings) === 1) ? 'person' : 'people'}
+                  </p>
                 </div>
               </div>
 
@@ -743,7 +770,10 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
                       <div className={styles.ingredientMain}>
                         <span className={styles.ingredientName}>{entry.requirement.name}</span>
                         <span className={styles.ingredientMeta}>
-                          {entry.requirement.quantity} {entry.requirement.unit}
+                          {formatQuantity(entry.requirement.quantity)} {entry.requirement.unit}
+                          {entry.requirement.inventoryQuantity && entry.requirement.inventoryUnit
+                            ? ` • ${formatQuantity(entry.requirement.inventoryQuantity)} ${entry.requirement.inventoryUnit} for inventory`
+                            : ''}
                         </span>
                       </div>
                       <div className={styles.ingredientSide}>
@@ -779,14 +809,14 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
                           <div className={styles.ingredientMain}>
                             <span className={styles.summaryItemName}>{entry.item.name}</span>
                             <span className={styles.summaryItemMeta}>
-                              {entry.usedQuantity} {entry.item.unit}
+                              {formatQuantity(entry.usedQuantity)} {entry.item.unit}
                             </span>
                           </div>
                           <div className={styles.ingredientSide}>
                             <span className={styles.summaryDelta}>
                               {entry.enoughStock
-                                ? `${entry.item.remainingQuantity} -> ${entry.nextRemainingQuantity} ${entry.item.unit}`
-                                : `Only ${entry.item.remainingQuantity} ${entry.item.unit} left`}
+                                ? `${formatQuantity(entry.item.remainingQuantity)} -> ${formatQuantity(entry.nextRemainingQuantity)} ${entry.item.unit}`
+                                : `Only ${formatQuantity(entry.item.remainingQuantity)} ${entry.item.unit} left`}
                             </span>
                           </div>
                         </div>
@@ -809,13 +839,14 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
                   onClick={() => void handleApplyDishUpdate()}
                   disabled={!canApplyDishUpdate || isApplyingDishUpdate}
                 >
-                  {isApplyingDishUpdate ? 'Updating...' : 'Confirm'}
+                  {isApplyingDishUpdate ? 'Updating...' : 'Update ingredients'}
                 </button>
                 <button
                   type="button"
                   className={styles.ghostButton}
                   onClick={() => {
                     setDishAnalysis(null);
+                    setAnalysisServings(null);
                     setDishError(null);
                   }}
                   disabled={isApplyingDishUpdate}
@@ -833,7 +864,7 @@ export function CookAtHome({ groceries, onUpdateGrocery }: Props) {
           item={selectedItem}
           isSpinning={false}
           asDialog
-          actionLabel={selectedItem ? `Cook ${selectedItem.name}` : undefined}
+          actionLabel={selectedItem ? `Use ${selectedItem.name}` : undefined}
           onAction={selectedItem ? () => handleCookSelectedDish(selectedItem.name) : undefined}
           onDismiss={() => setShowMobileResult(false)}
           onSpinAgain={() => {

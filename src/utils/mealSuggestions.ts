@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
-import type { MealSuggestion } from '../types';
+import type { MealSuggestion, UserProfilePreferences } from '../types';
 
 type GroceryInput = {
   name: string;
@@ -15,23 +15,29 @@ type GenerateMealSuggestionsOptions = {
 
 export async function generateMealSuggestions(
   groceries: GroceryInput[],
+  profile: UserProfilePreferences,
   options: GenerateMealSuggestionsOptions = {}
 ): Promise<MealSuggestion[]> {
   const { maxSuggestions = 10, excludeSuggestions = [] } = options;
   const { data, error } = await supabase.functions.invoke('meal-suggestions', {
     body: {
       groceries,
+      profile,
       maxSuggestions,
       excludeSuggestions,
     },
   });
 
   if (error) {
-    throw new Error(error.message || 'Failed to generate meal suggestions.');
+    throw new Error(
+      'We could not generate meal ideas right now. Please try again in a moment.'
+    );
   }
 
   if (!data || !Array.isArray(data.suggestions)) {
-    throw new Error('Meal suggestions service returned an unexpected response.');
+    throw new Error(
+      'We could not generate meal ideas right now. Please try again in a moment.'
+    );
   }
 
   return data.suggestions as MealSuggestion[];

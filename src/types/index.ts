@@ -22,6 +22,7 @@ export interface UserProfilePreferences {
   city: string;
   dietPreference: DietPreference;
   spicePreference: SpicePreference;
+  familyMembers: number;
 }
 
 export type UserProfileSetupStatus = 'skipped' | 'completed';
@@ -52,6 +53,8 @@ export interface DishIngredientRequirement {
   quantity: number;
   unit: string;
   importance: DishIngredientImportance;
+  inventoryQuantity?: number;
+  inventoryUnit?: string;
 }
 
 export interface DishIngredientAnalysis {

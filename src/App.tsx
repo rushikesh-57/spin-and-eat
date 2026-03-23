@@ -19,13 +19,15 @@ import { playSpinCompleteSound } from './utils/sound';
 import {
   DEFAULT_USER_PROFILE,
   loadOnboardingChoice,
-  loadUserProfile,
   loadUserProfileStatus,
   saveOnboardingChoice,
-  saveUserProfile,
-  saveUserProfileStatus,
 } from './utils/storage';
 import { supabase } from './lib/supabaseClient';
+import {
+  loadUserProfileFromSupabase,
+  saveUserProfileStatusToSupabase,
+  saveUserProfileToSupabase,
+} from './utils/userProfile';
 import styles from './App.module.css';
 import type { UserProfilePreferences, UserProfileSetupStatus } from './types';
 
@@ -76,15 +78,27 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    const hydrateUserProfile = (nextUserId: string | null) => {
+    const hydrateUserProfile = async (nextUserId: string | null) => {
       if (!nextUserId) {
         setUserProfile(DEFAULT_USER_PROFILE);
         setProfileStatus(null);
         return;
       }
 
-      setUserProfile(loadUserProfile(nextUserId));
-      setProfileStatus(loadUserProfileStatus(nextUserId));
+      try {
+        const { profile, profileStatus: nextStatus } = await loadUserProfileFromSupabase(nextUserId);
+        if (!isMounted) {
+          return;
+        }
+        setUserProfile(profile);
+        setProfileStatus(nextStatus);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+        setUserProfile(DEFAULT_USER_PROFILE);
+        setProfileStatus(null);
+      }
     };
 
     supabase.auth.getSession().then(({ data }) => {
@@ -101,7 +115,7 @@ function App() {
       setUserName(nextName);
       setUserId(nextUserId);
       setUserEmail(user?.email ?? null);
-      hydrateUserProfile(nextUserId);
+      void hydrateUserProfile(nextUserId);
     });
 
     const {
@@ -117,7 +131,7 @@ function App() {
       setUserName(nextName);
       setUserId(nextUserId);
       setUserEmail(user?.email ?? null);
-      hydrateUserProfile(nextUserId);
+      void hydrateUserProfile(nextUserId);
       if (nextName) {
         setShowLogin(false);
         setAuthError(null);
@@ -199,15 +213,14 @@ function App() {
   }, []);
 
   const handleSaveProfile = useCallback(
-    (profile: UserProfilePreferences) => {
+    async (profile: UserProfilePreferences) => {
       if (!userId) {
         return;
       }
 
+      await saveUserProfileToSupabase(userId, profile, 'completed');
       setUserProfile(profile);
       setProfileStatus('completed');
-      saveUserProfile(userId, profile);
-      saveUserProfileStatus(userId, 'completed');
     },
     [userId]
   );
@@ -218,7 +231,7 @@ function App() {
     }
 
     setProfileStatus('skipped');
-    saveUserProfileStatus(userId, 'skipped');
+    void saveUserProfileStatusToSupabase(userId, 'skipped');
   }, [userId]);
 
   const showAuthPage = !isLoggedIn && (showLogin || activeTab !== 'spin');
@@ -429,7 +442,12 @@ function App() {
               </section>
             ) : activeTab === 'cook' ? (
               <section className={styles.cookPanel} aria-label="Cook at home">
-                <CookAtHome groceries={kitchen.items} onUpdateGrocery={kitchen.updateItem} />
+                <CookAtHome
+                  groceries={kitchen.items}
+                  onUpdateGrocery={kitchen.updateItem}
+                  defaultServings={userProfile.familyMembers}
+                  userProfile={userProfile}
+                />
               </section>
             ) : activeTab === 'custom' ? (
               <section className={styles.cookPanel} aria-label="Make your own wheel">

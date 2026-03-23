@@ -1,5 +1,9 @@
 import { supabase } from '../lib/supabaseClient';
-import type { DishIngredientAnalysis, DishIngredientRequirement } from '../types';
+import type {
+  DishIngredientAnalysis,
+  DishIngredientRequirement,
+  UserProfilePreferences,
+} from '../types';
 
 type GroceryInput = {
   name: string;
@@ -24,6 +28,14 @@ const sanitizeRequirement = (value: unknown): DishIngredientRequirement | null =
         : NaN;
   const importance =
     candidate.importance === 'recommended' ? 'recommended' : 'essential';
+  const inventoryUnit =
+    typeof candidate.inventoryUnit === 'string' ? candidate.inventoryUnit.trim() : '';
+  const inventoryQuantity =
+    typeof candidate.inventoryQuantity === 'number'
+      ? candidate.inventoryQuantity
+      : typeof candidate.inventoryQuantity === 'string'
+        ? Number(candidate.inventoryQuantity)
+        : NaN;
 
   if (!name || !unit || !Number.isFinite(quantity) || quantity <= 0) {
     return null;
@@ -34,27 +46,41 @@ const sanitizeRequirement = (value: unknown): DishIngredientRequirement | null =
     unit,
     quantity,
     importance,
+    ...(inventoryUnit && Number.isFinite(inventoryQuantity) && inventoryQuantity > 0
+      ? {
+          inventoryUnit,
+          inventoryQuantity,
+        }
+      : {}),
   };
 };
 
 export async function analyzeDishGroceries(
   dish: string,
-  groceries: GroceryInput[]
+  groceries: GroceryInput[],
+  servings: number,
+  profile: UserProfilePreferences
 ): Promise<DishIngredientAnalysis> {
   const trimmedDish = dish.trim();
   if (!trimmedDish) {
     throw new Error('Enter a dish name to check required groceries.');
   }
 
+  const normalizedServings = Math.max(1, Math.round(servings || 1));
+
   const { data, error } = await supabase.functions.invoke('dish-grocery-requirements', {
     body: {
       dish: trimmedDish,
       groceries,
+      servings: normalizedServings,
+      profile,
     },
   });
 
   if (error) {
-    throw new Error(error.message || 'Failed to analyze dish groceries.');
+    throw new Error(
+      'We could not get the ingredients for this dish right now. Please try again.'
+    );
   }
 
   const ingredients = Array.isArray(data?.ingredients)
@@ -62,7 +88,9 @@ export async function analyzeDishGroceries(
     : [];
 
   if (ingredients.length === 0) {
-    throw new Error('No grocery requirements were returned for this dish.');
+    throw new Error(
+      'We could not get the ingredients for this dish right now. Please try again.'
+    );
   }
 
   return {

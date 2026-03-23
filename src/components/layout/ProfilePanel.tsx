@@ -67,6 +67,7 @@ export function ProfilePanel({
       city: draft.city.trim(),
       dietPreference: draft.dietPreference,
       spicePreference: draft.spicePreference,
+      familyMembers: Math.max(1, Math.round(draft.familyMembers || 1)),
     });
     setIsEditing(false);
   };
@@ -98,6 +99,10 @@ export function ProfilePanel({
               <div>
                 <p className={styles.summaryLabel}>Spice level</p>
                 <p className={styles.summaryValue}>{formatPreference(profile.spicePreference)}</p>
+              </div>
+              <div>
+                <p className={styles.summaryLabel}>Family members</p>
+                <p className={styles.summaryValue}>{profile.familyMembers}</p>
               </div>
             </div>
           ) : (
@@ -174,6 +179,23 @@ export function ProfilePanel({
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>Family members</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={draft.familyMembers}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    familyMembers: Number(event.target.value) || 1,
+                  }))
+                }
+                className={styles.input}
+              />
             </label>
 
             <div className={styles.formActions}>

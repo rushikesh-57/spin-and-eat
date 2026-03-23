@@ -42,6 +42,7 @@ export const DEFAULT_USER_PROFILE: UserProfilePreferences = {
   city: '',
   dietPreference: 'no-preference',
   spicePreference: 'medium',
+  familyMembers: 2,
 };
 
 export function loadOnboardingChoice(userId: string): OnboardingChoice | null {
@@ -165,6 +166,12 @@ export function loadUserProfile(userId: string): UserProfilePreferences {
         parsed.spicePreference === 'spicy'
           ? parsed.spicePreference
           : DEFAULT_USER_PROFILE.spicePreference,
+      familyMembers:
+        typeof parsed.familyMembers === 'number' &&
+        Number.isFinite(parsed.familyMembers) &&
+        parsed.familyMembers > 0
+          ? Math.max(1, Math.round(parsed.familyMembers))
+          : DEFAULT_USER_PROFILE.familyMembers,
     };
   } catch {
     return DEFAULT_USER_PROFILE;
