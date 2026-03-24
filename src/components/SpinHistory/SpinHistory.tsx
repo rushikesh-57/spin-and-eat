@@ -1,4 +1,5 @@
 import type { SpinHistoryEntry } from '../../types';
+import { useAlertDialog } from '../layout/AlertDialogProvider';
 import styles from './SpinHistory.module.css';
 
 interface SpinHistoryProps {
@@ -17,6 +18,8 @@ function formatTime(ts: number): string {
 }
 
 export function SpinHistory({ history, onClear }: SpinHistoryProps) {
+  const { confirm } = useAlertDialog();
+
   if (history.length === 0) {
     return (
       <section
@@ -44,7 +47,18 @@ export function SpinHistory({ history, onClear }: SpinHistoryProps) {
         </h2>
         <button
           type="button"
-          onClick={onClear}
+          onClick={async () => {
+            const confirmed = await confirm({
+              title: 'Clear spin history?',
+              message: 'This will remove the recent spin results shown here.',
+              confirmLabel: 'Clear history',
+              tone: 'danger',
+            });
+
+            if (confirmed) {
+              onClear();
+            }
+          }}
           className={styles.clearBtn}
           aria-label="Clear spin history"
         >

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { FoodItem, FoodCategory, FoodSource } from '../../types';
 import { FOOD_SOURCES } from '../../types';
+import { useAlertDialog } from '../layout/AlertDialogProvider';
 import styles from './FoodManager.module.css';
 
 interface FoodManagerProps {
@@ -28,6 +29,7 @@ export function FoodManager({
 }: FoodManagerProps) {
   const [newName, setNewName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const { confirm } = useAlertDialog();
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const sourceItems = items.filter((item) => item.source === activeSource);
@@ -124,12 +126,15 @@ export function FoodManager({
         <div className={styles.footerActions}>
           <button
             type="button"
-            onClick={() => {
-              if (
-                window.confirm(
-                  'Remove all foods from your list? This will clear every item.'
-                )
-              ) {
+            onClick={async () => {
+              const confirmed = await confirm({
+                title: 'Remove all foods?',
+                message: 'This will clear every food item from the current list.',
+                confirmLabel: 'Remove all',
+                tone: 'danger',
+              });
+
+              if (confirmed) {
                 onClearAll();
               }
             }}
@@ -140,12 +145,15 @@ export function FoodManager({
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (
-                window.confirm(
-                  'Reset foods to the default list? This will replace your current items.'
-                )
-              ) {
+            onClick={async () => {
+              const confirmed = await confirm({
+                title: 'Reset to the sample list?',
+                message: 'This will replace your current food items with the default sample list.',
+                confirmLabel: 'Reset list',
+                tone: 'danger',
+              });
+
+              if (confirmed) {
                 onReset();
               }
             }}

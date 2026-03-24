@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import type { GroceryFrequency, GroceryItem, GroceryStatus } from '../../types';
+import type { GroceryFrequency, GroceryItem, GroceryStatus, UserProfilePreferences } from '../../types';
 import { CATEGORY_SECTIONS, getCategoryId } from '../../utils/groceryCategories';
+import { useAlertDialog } from '../layout/AlertDialogProvider';
 import styles from './Kitchen.module.css';
 
 type Props = {
   groceries: GroceryItem[];
+  userProfile: UserProfilePreferences;
   onAddGrocery: (item: Omit<GroceryItem, 'id'>) => void;
   onUpdateGrocery: (id: string, updates: Partial<Omit<GroceryItem, 'id'>>) => void;
   onRemoveGrocery: (id: string) => void;
@@ -58,18 +60,18 @@ const applyStatusToRemaining = (
 
 export function Kitchen({
   groceries,
+  userProfile,
   onAddGrocery,
   onUpdateGrocery,
   onRemoveGrocery,
   onClearGroceries,
   onResetGrocery,
 }: Props) {
+  const { confirm, notify } = useAlertDialog();
   const [newItem, setNewItem] = useState(defaultNewItem);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState(defaultNewItem);
-  const [activePanel, setActivePanel] = useState<'weekly' | 'monthly' | 'reset' | 'clear' | null>(
-    null
-  );
+  const [activePanel, setActivePanel] = useState<'weekly' | 'monthly' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<GroceryStatus | 'all'>('all');
   const [openSections, setOpenSections] = useState({
@@ -109,6 +111,31 @@ export function Kitchen({
     );
   }, [groceries, activePanel]);
 
+  const normalizedWhatsappNumber = userProfile.whatsappNumber.replace(/[^\d]/g, '');
+
+  const handleShareListToWhatsapp = async () => {
+    if (activePanel !== 'weekly' && activePanel !== 'monthly') return;
+    if (!normalizedWhatsappNumber || normalizedWhatsappNumber.length < 8) {
+      await notify({
+        title: 'Add your WhatsApp number',
+        message: 'Please add a valid WhatsApp number in Profile, then try sharing the list again.',
+      });
+      return;
+    }
+
+    const title = activePanel === 'weekly' ? 'Weekly grocery list' : 'Monthly grocery list';
+    const lines =
+      generatedList.length === 0
+        ? ['All items are stocked right now.']
+        : generatedList.map(
+            (item) =>
+              `- ${item.name}: ${item.remainingQuantity} / ${item.orderedQuantity} ${item.unit || 'units'} (${STATUS_LABELS[item.status]})`
+          );
+    const text = [title, '', ...lines].join('\n');
+    const whatsappUrl = `https://wa.me/${normalizedWhatsappNumber}?text=${encodeURIComponent(text)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
   const isFiltering = Boolean(normalizedSearch) || statusFilter !== 'all';
   const categoriesToRender = isFiltering
     ? CATEGORY_SECTIONS.filter(
@@ -143,23 +170,27 @@ export function Kitchen({
     });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingId) return;
     if (!editDraft.name.trim()) return;
-    if (!window.confirm(`Save changes to ${editDraft.name.trim()}?`)) return;
+    const confirmed = await confirm({
+      title: 'Save grocery update?',
+      message: `This will update the remaining quantity for ${editDraft.name.trim()}.`,
+      confirmLabel: 'Save changes',
+    });
+    if (!confirmed) return;
+    const nextStatus = deriveStatusFromQuantities(
+      editDraft.orderedQuantity,
+      editDraft.remainingQuantity
+    );
     const nextRemaining = applyStatusToRemaining(
-      editDraft.status,
+      nextStatus,
       editDraft.orderedQuantity,
       editDraft.remainingQuantity
     );
     onUpdateGrocery(editingId, {
-      name: editDraft.name.trim(),
-      orderedQuantity: editDraft.orderedQuantity,
       remainingQuantity: nextRemaining,
-      unit: editDraft.unit.trim(),
-      status: editDraft.status,
-      frequency: editDraft.frequency,
-      categoryId: editDraft.categoryId,
+      status: nextStatus,
     });
     setEditingId(null);
   };
@@ -190,6 +221,34 @@ export function Kitchen({
     setActivePanel(null);
   };
 
+  const handleResetGroceries = async () => {
+    const confirmed = await confirm({
+      title: 'Reset grocery defaults?',
+      message: 'This will replace your current grocery inventory with the default starter list.',
+      confirmLabel: 'Reset defaults',
+      tone: 'danger',
+    });
+
+    if (confirmed) {
+      onResetGrocery();
+      closeActionPanel();
+    }
+  };
+
+  const handleClearGroceries = async () => {
+    const confirmed = await confirm({
+      title: 'Remove all groceries?',
+      message: 'This will delete every grocery item from your inventory.',
+      confirmLabel: 'Remove all',
+      tone: 'danger',
+    });
+
+    if (confirmed) {
+      onClearGroceries();
+      closeActionPanel();
+    }
+  };
+
   return (
     <div className={styles.kitchen}>
       <section className={styles.section}>
@@ -216,14 +275,14 @@ export function Kitchen({
               <div className={styles.actionButtons}>
                 <button
                   type="button"
-                  className={styles.ghostButton}
+                  className={`${styles.primaryButton} ${styles.actionButtonHighlight}`}
                   onClick={() => setActivePanel('weekly')}
                 >
                   Weekly list
                 </button>
                 <button
                   type="button"
-                  className={styles.ghostButton}
+                  className={`${styles.primaryButton} ${styles.actionButtonHighlight}`}
                   onClick={() => setActivePanel('monthly')}
                 >
                   Monthly list
@@ -251,6 +310,18 @@ export function Kitchen({
                   <span className={styles.listBadge}>
                     {activePanel === 'weekly' ? 'Weekly' : 'Monthly'} restock
                   </span>
+                  <div className={styles.listShareRow}>
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={handleShareListToWhatsapp}
+                    >
+                      Send to WhatsApp
+                    </button>
+                    {!normalizedWhatsappNumber ? (
+                      <p className={styles.listMeta}>Add your WhatsApp number in Profile to use this.</p>
+                    ) : null}
+                  </div>
                   {generatedList.length === 0 ? (
                     <p className={styles.emptyText}>You are all set for this list.</p>
                   ) : (
@@ -299,76 +370,19 @@ export function Kitchen({
               <div className={styles.actionButtons}>
                 <button
                   type="button"
-                  className={styles.ghostButton}
-                  onClick={() => setActivePanel('reset')}
+                  className={`${styles.primaryButton} ${styles.actionButtonHighlight}`}
+                  onClick={handleResetGroceries}
                 >
                   Reset defaults
                 </button>
                 <button
                   type="button"
-                  className={styles.dangerButton}
-                  onClick={() => setActivePanel('clear')}
+                  className={`${styles.primaryButton} ${styles.actionButtonHighlight}`}
+                  onClick={handleClearGroceries}
                 >
                   Remove all
                 </button>
               </div>
-
-              {activePanel === 'reset' || activePanel === 'clear' ? (
-                <div className={styles.resultCard}>
-                  <div className={styles.listPanelHeader}>
-                    <div>
-                      <h3 className={styles.listTitle}>
-                        {activePanel === 'reset' ? 'Reset defaults' : 'Remove all groceries'}
-                      </h3>
-                      <p className={styles.listMeta}>
-                        {activePanel === 'reset'
-                          ? 'Replace your current items with the default grocery set.'
-                          : 'Clear every grocery item from your current inventory.'}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className={styles.closeButton}
-                      onClick={closeActionPanel}
-                      aria-label={`Close ${activePanel} panel`}
-                    >
-                      x
-                    </button>
-                  </div>
-                  <div className={styles.confirmPanel}>
-                    <p className={styles.confirmText}>
-                      {activePanel === 'reset'
-                        ? 'This will replace your current groceries with the default starter list.'
-                        : 'This will remove all grocery items from your inventory.'}
-                    </p>
-                    <div className={styles.rowActions}>
-                      <button
-                        type="button"
-                        className={
-                          activePanel === 'clear' ? styles.dangerButton : styles.primaryButton
-                        }
-                        onClick={() => {
-                          if (activePanel === 'reset') {
-                            onResetGrocery();
-                          } else {
-                            onClearGroceries();
-                          }
-                          closeActionPanel();
-                        }}
-                      >
-                        {activePanel === 'reset' ? 'Confirm reset' : 'Confirm remove all'}
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.ghostButton}
-                        onClick={closeActionPanel}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
 
               <div className={styles.formRow}>
                 <label className={`${styles.field} ${styles.fieldItem}`}>
@@ -572,139 +586,49 @@ export function Kitchen({
                                     >
                                       {isEditing ? (
                                         <>
-                                          <input
-                                            className={styles.input}
-                                            value={editDraft.name}
-                                            onChange={(event) =>
-                                              setEditDraft((prev) => ({
-                                                ...prev,
-                                                name: event.target.value,
-                                              }))
-                                            }
-                                          />
-                                          <input
-                                            className={styles.input}
-                                            type="number"
-                                            min="0"
-                                            step="0.1"
-                                            placeholder="Ordered qty"
-                                            value={
-                                              Number.isNaN(editDraft.orderedQuantity)
-                                                ? ''
-                                                : editDraft.orderedQuantity
-                                            }
-                                            onChange={(event) =>
-                                              setEditDraft((prev) => ({
-                                                ...prev,
-                                                orderedQuantity: Number(event.target.value),
-                                                remainingQuantity:
-                                                  prev.remainingQuantity > Number(event.target.value)
-                                                    ? Number(event.target.value)
-                                                    : prev.remainingQuantity,
-                                              }))
-                                            }
-                                          />
-                                          <input
-                                            className={styles.input}
-                                            type="number"
-                                            min="0"
-                                            step="0.1"
-                                            placeholder="Remaining qty"
-                                            value={
-                                              Number.isNaN(editDraft.remainingQuantity)
-                                                ? ''
-                                                : editDraft.remainingQuantity
-                                            }
-                                            onChange={(event) =>
-                                              setEditDraft((prev) => ({
-                                                ...prev,
-                                                remainingQuantity: Number(event.target.value),
-                                              }))
-                                            }
-                                          />
-                                          <select
-                                            className={styles.select}
-                                            value={editDraft.unit}
-                                            onChange={(event) =>
-                                              setEditDraft((prev) => ({
-                                                ...prev,
-                                                unit: event.target.value,
-                                              }))
-                                            }
-                                          >
-                                            {UNIT_OPTIONS.map((unit) => (
-                                              <option key={unit} value={unit}>
-                                                {unit}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          <select
-                                            className={styles.select}
-                                            value={editDraft.status}
-                                            onChange={(event) =>
-                                              setEditDraft((prev) => ({
-                                                ...prev,
-                                                status: event.target.value as GroceryStatus,
-                                              }))
-                                            }
-                                          >
-                                            {STATUS_ORDER.map((status) => (
-                                              <option key={status} value={status}>
-                                                {STATUS_LABELS[status]}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          <select
-                                            className={styles.select}
-                                            value={editDraft.frequency}
-                                            onChange={(event) =>
-                                              setEditDraft((prev) => ({
-                                                ...prev,
-                                                frequency: event.target.value as GroceryFrequency,
-                                              }))
-                                            }
-                                          >
-                                            {FREQUENCY_ORDER.map((frequency) => (
-                                              <option key={frequency} value={frequency}>
-                                                {FREQUENCY_LABELS[frequency]}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          <select
-                                            className={styles.select}
-                                            value={editDraft.categoryId ?? 'auto'}
-                                            onChange={(event) =>
-                                              setEditDraft((prev) => ({
-                                                ...prev,
-                                                categoryId:
-                                                  event.target.value === 'auto'
-                                                    ? undefined
-                                                    : event.target.value,
-                                              }))
-                                            }
-                                          >
-                                            <option value="auto">Auto</option>
-                                            {CATEGORY_SECTIONS.map((category) => (
-                                              <option key={category.id} value={category.id}>
-                                                {category.title}
-                                              </option>
-                                            ))}
-                                          </select>
-                                          <div className={styles.rowActions}>
-                                            <button
-                                              type="button"
-                                              className={styles.primaryButton}
-                                              onClick={handleSaveEdit}
-                                            >
-                                              Save
-                                            </button>
-                                            <button
-                                              type="button"
-                                              className={styles.ghostButton}
-                                              onClick={() => setEditingId(null)}
-                                            >
-                                              Cancel
-                                            </button>
+                                          <div className={styles.itemInfo}>
+                                            <div className={styles.itemName}>{item.name}</div>
+                                            <div className={styles.itemMeta}>
+                                              Ordered: {item.orderedQuantity} {item.unit || 'units'}
+                                            </div>
+                                          </div>
+                                          <div className={styles.editRowInline}>
+                                            <label className={styles.editField}>
+                                              <span className={styles.editFieldLabel}>Remaining qty</span>
+                                              <input
+                                                className={styles.input}
+                                                type="number"
+                                                min="0"
+                                                step="0.1"
+                                                value={
+                                                  Number.isNaN(editDraft.remainingQuantity)
+                                                    ? ''
+                                                    : editDraft.remainingQuantity
+                                                }
+                                                onChange={(event) =>
+                                                  setEditDraft((prev) => ({
+                                                    ...prev,
+                                                    remainingQuantity: Number(event.target.value),
+                                                  }))
+                                                }
+                                              />
+                                            </label>
+                                            <div className={styles.rowActions}>
+                                              <button
+                                                type="button"
+                                                className={styles.primaryButton}
+                                                onClick={handleSaveEdit}
+                                              >
+                                                Save
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className={styles.ghostButton}
+                                                onClick={() => setEditingId(null)}
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
                                           </div>
                                         </>
                                       ) : (
@@ -737,14 +661,32 @@ export function Kitchen({
                                             </button>
                                             <button
                                               type="button"
-                                              className={styles.dangerButton}
-                                              onClick={() => {
-                                                if (window.confirm(`Remove ${item.name}?`)) {
+                                              className={styles.deleteActionButton}
+                                              onClick={async () => {
+                                                const confirmed = await confirm({
+                                                  title: 'Delete grocery item?',
+                                                  message: `This will remove ${item.name} from your grocery inventory.`,
+                                                  confirmLabel: 'Delete item',
+                                                  tone: 'danger',
+                                                });
+
+                                                if (confirmed) {
                                                   onRemoveGrocery(item.id);
                                                 }
                                               }}
+                                              aria-label={`Delete ${item.name}`}
+                                              title="Delete grocery"
                                             >
-                                              Remove
+                                              <svg
+                                                viewBox="0 0 24 24"
+                                                aria-hidden="true"
+                                                className={styles.deleteIcon}
+                                              >
+                                                <path
+                                                  d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm-1 11V8h12v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z"
+                                                  fill="currentColor"
+                                                />
+                                              </svg>
                                             </button>
                                           </div>
                                         </>

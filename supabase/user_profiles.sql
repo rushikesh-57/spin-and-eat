@@ -5,10 +5,14 @@ create table if not exists public.user_profiles (
   diet_preference text not null default 'no-preference',
   spice_preference text not null default 'medium',
   family_members integer not null default 2 check (family_members >= 1),
+  whatsapp_number text not null default '',
   setup_status text null check (setup_status in ('skipped', 'completed')),
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.user_profiles
+add column if not exists whatsapp_number text not null default '';
 
 alter table public.user_profiles enable row level security;
 

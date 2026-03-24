@@ -93,6 +93,13 @@
   gap: 0.45rem;
 }
 
+.actionButtonHighlight {
+  min-height: 2.5rem;
+  padding: 0.58rem 0.95rem;
+  font-size: 0.84rem;
+  box-shadow: var(--shadow-soft);
+}
+
 .primaryButton,
 .ghostButton,
 .dangerButton {
@@ -136,6 +143,7 @@
 }
 
 .resultCard {
+  position: relative;
   background: var(--color-surface-muted);
   border-radius: 16px;
   padding: 0.9rem;
@@ -173,6 +181,13 @@
   color: #1d4ed8;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.listShareRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
 }
 
 .generatedList {
@@ -232,6 +247,29 @@
   text-transform: uppercase;
   text-align: center;
   align-self: center;
+}
+
+.editField {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.editRowInline {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.editFieldLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .input,
@@ -409,6 +447,24 @@
   font-size: 0.72rem;
 }
 
+.deleteActionButton {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deleteIcon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
 .statusPill {
   border: none;
   border-radius: var(--radius-full);
@@ -431,6 +487,34 @@
 .statusout {
   background: rgba(239, 68, 68, 0.12);
   color: #b91c1c;
+}
+
+@media (max-width: 640px) {
+  .actionButtonHighlight {
+    flex: 1 1 calc(50% - 0.25rem);
+    justify-content: center;
+    text-align: center;
+  }
+
+  .editField {
+    width: 100%;
+  }
+
+  .editField .input {
+    flex: 1 1 auto;
+  }
+
+  .listRowEditing .rowActions .primaryButton,
+  .listRowEditing .rowActions .ghostButton {
+    min-height: 2.5rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.82rem;
+  }
+
+  .deleteActionButton {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
 }
 
 .emptyText {
@@ -461,6 +545,10 @@
 }
 
 @media (max-width: 640px) {
+  .resultCard {
+    padding-top: 1rem;
+  }
+
   .formRow {
     grid-template-columns: 1fr 1fr;
   }
@@ -516,6 +604,11 @@
     grid-template-columns: 1fr;
   }
 
+  .editRowInline {
+    width: 100%;
+    align-items: center;
+  }
+
   .fieldLabel {
     text-align: left;
     align-self: flex-start;
@@ -538,19 +631,36 @@
     flex-direction: column;
   }
 
+  .listShareRow {
+    align-items: stretch;
+  }
+
+  .listPanelHeader {
+    padding-right: 2.75rem;
+  }
+
   .groupHeader {
     align-items: center;
     flex-direction: row;
   }
 
   .rowActions {
-    grid-column: 1 / -1;
-    width: 100%;
+    width: auto;
     justify-content: flex-end;
   }
 
   .statusPill {
     justify-self: end;
     align-self: start;
+  }
+
+  .listRowEditing .rowActions {
+    flex-shrink: 0;
+  }
+
+  .closeButton {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
   }
 }

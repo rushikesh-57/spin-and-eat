@@ -68,6 +68,7 @@ export function ProfilePanel({
       dietPreference: draft.dietPreference,
       spicePreference: draft.spicePreference,
       familyMembers: Math.max(1, Math.round(draft.familyMembers || 1)),
+      whatsappNumber: draft.whatsappNumber.trim(),
     });
     setIsEditing(false);
   };
@@ -103,6 +104,10 @@ export function ProfilePanel({
               <div>
                 <p className={styles.summaryLabel}>Family members</p>
                 <p className={styles.summaryValue}>{profile.familyMembers}</p>
+              </div>
+              <div>
+                <p className={styles.summaryLabel}>WhatsApp</p>
+                <p className={styles.summaryValue}>{profile.whatsappNumber || 'Not set'}</p>
               </div>
             </div>
           ) : (
@@ -194,6 +199,22 @@ export function ProfilePanel({
                     familyMembers: Number(event.target.value) || 1,
                   }))
                 }
+                className={styles.input}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span className={styles.fieldLabel}>WhatsApp number</span>
+              <input
+                type="tel"
+                value={draft.whatsappNumber}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    whatsappNumber: event.target.value,
+                  }))
+                }
+                placeholder="Include country code"
                 className={styles.input}
               />
             </label>

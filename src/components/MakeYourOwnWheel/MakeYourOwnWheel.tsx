@@ -5,6 +5,7 @@ import { ResultDisplay } from '../ResultDisplay';
 import { useWheelSpin } from '../../hooks/useWheelSpin';
 import { useCustomWheelItems } from '../../hooks/useCustomWheelItems';
 import { playSpinCompleteSound } from '../../utils/sound';
+import { useAlertDialog } from '../layout/AlertDialogProvider';
 import styles from './MakeYourOwnWheel.module.css';
 
 const MOBILE_LAYOUT_QUERY = '(max-width: 719px)';
@@ -23,6 +24,7 @@ export function MakeYourOwnWheel({ userId }: MakeYourOwnWheelProps) {
   );
   const [showMobileResult, setShowMobileResult] = useState(false);
   const customWheel = useCustomWheelItems(userId);
+  const { confirm } = useAlertDialog();
 
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(customWheel.filteredItems);
 
@@ -183,8 +185,15 @@ export function MakeYourOwnWheel({ userId }: MakeYourOwnWheelProps) {
             {customWheel.items.length > 0 ? (
               <button
                 type="button"
-                onClick={() => {
-                  if (window.confirm('Clear every custom option from this wheel?')) {
+                onClick={async () => {
+                  const confirmed = await confirm({
+                    title: 'Clear custom wheel?',
+                    message: 'This will remove every custom option from this wheel.',
+                    confirmLabel: 'Clear wheel',
+                    tone: 'danger',
+                  });
+
+                  if (confirmed) {
                     customWheel.clearAll();
                   }
                 }}

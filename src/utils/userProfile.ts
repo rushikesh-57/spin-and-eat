@@ -15,6 +15,7 @@ type UserProfileRow = {
   diet_preference: UserProfilePreferences['dietPreference'] | null;
   spice_preference: UserProfilePreferences['spicePreference'] | null;
   family_members: number | null;
+  whatsapp_number: string | null;
   setup_status: UserProfileSetupStatus | null;
 };
 
@@ -27,6 +28,7 @@ const mapRowToProfile = (row: UserProfileRow): UserProfilePreferences => ({
     typeof row.family_members === 'number' && Number.isFinite(row.family_members)
       ? Math.max(1, Math.round(row.family_members))
       : DEFAULT_USER_PROFILE.familyMembers,
+  whatsappNumber: row.whatsapp_number ?? DEFAULT_USER_PROFILE.whatsappNumber,
 });
 
 export async function loadUserProfileFromSupabase(userId: string): Promise<{
@@ -36,7 +38,7 @@ export async function loadUserProfileFromSupabase(userId: string): Promise<{
   const { data, error } = await supabase
     .from('user_profiles')
     .select(
-      'user_id, preferred_name, city, diet_preference, spice_preference, family_members, setup_status'
+      'user_id, preferred_name, city, diet_preference, spice_preference, family_members, whatsapp_number, setup_status'
     )
     .eq('user_id', userId)
     .maybeSingle<UserProfileRow>();
@@ -88,6 +90,7 @@ export async function saveUserProfileToSupabase(
     diet_preference: profile.dietPreference,
     spice_preference: profile.spicePreference,
     family_members: Math.max(1, Math.round(profile.familyMembers || 1)),
+    whatsapp_number: profile.whatsappNumber.trim(),
     setup_status: profileStatus,
   };
 

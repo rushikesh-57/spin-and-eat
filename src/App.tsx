@@ -12,6 +12,7 @@ import { Kitchen } from './components/Kitchen/Kitchen';
 import { CookAtHome } from './components/CookAtHome/CookAtHome';
 import { MakeYourOwnWheel } from './components/MakeYourOwnWheel/MakeYourOwnWheel';
 import { AppHeader } from './components/layout/AppHeader';
+import { AlertDialogProvider } from './components/layout/AlertDialogProvider';
 import { TabBar } from './components/layout/TabBar';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { ProfilePanel } from './components/layout/ProfilePanel';
@@ -300,7 +301,8 @@ function App() {
   }, [userId]);
 
   return (
-    <div className={styles.app}>
+    <AlertDialogProvider>
+      <div className={styles.app}>
       <AppHeader
         isLoggedIn={isLoggedIn}
         userName={userName}
@@ -433,6 +435,7 @@ function App() {
               <section className={styles.kitchenPanel} aria-label="Kitchen inventory">
                 <Kitchen
                   groceries={kitchen.items}
+                  userProfile={userProfile}
                   onAddGrocery={kitchen.addItem}
                   onUpdateGrocery={kitchen.updateItem}
                   onRemoveGrocery={kitchen.removeItem}
@@ -494,7 +497,8 @@ function App() {
           }}
         />
       ) : null}
-    </div>
+      </div>
+    </AlertDialogProvider>
   );
 }
 

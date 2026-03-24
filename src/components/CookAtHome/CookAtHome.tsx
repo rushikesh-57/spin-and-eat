@@ -16,6 +16,7 @@ import { generateMealSuggestions } from '../../utils/mealSuggestions';
 import { analyzeDishGroceries } from '../../utils/dishGroceries';
 import { generateId } from '../../utils/id';
 import { formatQuantity, resolveRequirementQuantityForInventory } from '../../utils/ingredientUnits';
+import { CATEGORY_SECTIONS } from '../../utils/groceryCategories';
 import { playSpinCompleteSound } from '../../utils/sound';
 import styles from './CookAtHome.module.css';
 
@@ -43,6 +44,17 @@ type InventoryUpdatePreview = {
   nextRemainingQuantity: number;
   nextStatus: GroceryStatus;
   enoughStock: boolean;
+};
+
+type EditableIngredientRequirement = DishIngredientRequirement & {
+  localId: string;
+  quantityInput?: string;
+};
+
+type AddIngredientDraft = {
+  name: string;
+  quantity: string;
+  unit: string;
 };
 
 const buildWheelItems = (suggestions: string[]): FoodItem[] =>
@@ -141,7 +153,7 @@ const deriveStatusFromRemaining = (
 };
 
 const buildRequirementPreview = (
-  analysis: DishIngredientAnalysis,
+  requirements: DishIngredientRequirement[],
   groceries: GroceryItem[]
 ): {
   requirements: RequirementPreview[];
@@ -149,7 +161,7 @@ const buildRequirementPreview = (
 } => {
   const inventoryUsage = new Map<string, { item: GroceryItem; usedQuantity: number }>();
 
-  const requirements: RequirementPreview[] = analysis.ingredients.map(
+  const requirementPreviews: RequirementPreview[] = requirements.map(
     (requirement): RequirementPreview => {
       const matchedItem = findBestInventoryMatch(requirement, groceries);
       if (!matchedItem) {
@@ -196,7 +208,7 @@ const buildRequirementPreview = (
         enoughStock,
         status,
         note: enoughStock
-          ? `${formatQuantity(matchedQuantity)} ${matchedItem.unit}${resolvedQuantity.estimated ? ' est.' : ''} from ${resolvedQuantity.note}`
+          ? ''
           : `Only ${formatQuantity(matchedItem.remainingQuantity)} ${matchedItem.unit} left`,
       };
     }
@@ -218,7 +230,7 @@ const buildRequirementPreview = (
     };
   });
 
-  return { requirements, inventoryUpdates };
+  return { requirements: requirementPreviews, inventoryUpdates };
 };
 
 export function CookAtHome({
@@ -238,10 +250,19 @@ export function CookAtHome({
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
   const [analysisServings, setAnalysisServings] = useState<number | null>(null);
   const [dishAnalysis, setDishAnalysis] = useState<DishIngredientAnalysis | null>(null);
+  const [editableRequirements, setEditableRequirements] = useState<EditableIngredientRequirement[]>(
+    []
+  );
+  const [addIngredientDraft, setAddIngredientDraft] = useState<AddIngredientDraft>({
+    name: '',
+    quantity: '',
+    unit: 'pcs',
+  });
   const [dishError, setDishError] = useState<string | null>(null);
   const [dishSuccess, setDishSuccess] = useState<string | null>(null);
   const [isAnalyzingDish, setIsAnalyzingDish] = useState(false);
   const [isApplyingDishUpdate, setIsApplyingDishUpdate] = useState(false);
+  const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
   const [openSections, setOpenSections] = useState({ wheel: true, ideas: true });
   const [isMobileLayout, setIsMobileLayout] = useState(() =>
     window.matchMedia('(max-width: 719px)').matches
@@ -267,8 +288,8 @@ export function CookAtHome({
       return null;
     }
 
-    return buildRequirementPreview(dishAnalysis, groceries);
-  }, [dishAnalysis, groceries]);
+    return buildRequirementPreview(editableRequirements, groceries);
+  }, [dishAnalysis, editableRequirements, groceries]);
 
   const canApplyDishUpdate =
     preview !== null &&
@@ -280,7 +301,9 @@ export function CookAtHome({
     setDishInput(dishName);
     setSelectedDish(dishName);
     setDishAnalysis(null);
+    setEditableRequirements([]);
     setAnalysisServings(null);
+    setShowUpdateConfirmation(false);
     setDishError(null);
     setDishSuccess(null);
   };
@@ -432,10 +455,25 @@ export function CookAtHome({
         userProfile
       );
       setDishAnalysis(analysis);
+      setEditableRequirements(
+        analysis.ingredients.map((ingredient) => ({
+          ...ingredient,
+          localId: generateId(),
+          quantityInput: formatQuantity(ingredient.quantity),
+        }))
+      );
+      setAddIngredientDraft({
+        name: '',
+        quantity: '',
+        unit: 'pcs',
+      });
+      setShowUpdateConfirmation(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to analyze the dish.';
       setDishError(message);
       setDishAnalysis(null);
+      setEditableRequirements([]);
+      setShowUpdateConfirmation(false);
     } finally {
       setIsAnalyzingDish(false);
     }
@@ -458,6 +496,101 @@ export function CookAtHome({
     spin(() => {
       playSpinCompleteSound();
     });
+  };
+
+  const updateEditableRequirement = (
+    localId: string,
+    updates: Partial<EditableIngredientRequirement>
+  ) => {
+    setEditableRequirements((prev) =>
+      prev.map((requirement) =>
+        requirement.localId === localId
+          ? {
+              ...requirement,
+              ...updates,
+              ...(updates.quantity !== undefined || updates.unit !== undefined
+                ? {
+                    inventoryQuantity: undefined,
+                    inventoryUnit: undefined,
+                  }
+                : {}),
+            }
+          : requirement
+      )
+    );
+  };
+
+  const handleQuantityInputChange = (localId: string, rawValue: string) => {
+    const parsedQuantity = Number(rawValue);
+    updateEditableRequirement(localId, {
+      quantityInput: rawValue,
+      ...(rawValue.trim() !== '' && Number.isFinite(parsedQuantity) && parsedQuantity > 0
+        ? { quantity: parsedQuantity }
+        : {}),
+    });
+  };
+
+  const handleQuantityInputBlur = (localId: string) => {
+    setEditableRequirements((prev) =>
+      prev.map((requirement) => {
+        if (requirement.localId !== localId) {
+          return requirement;
+        }
+
+        const rawValue = requirement.quantityInput ?? '';
+        const parsedQuantity = Number(rawValue);
+        if (rawValue.trim() !== '' && Number.isFinite(parsedQuantity) && parsedQuantity > 0) {
+          return {
+            ...requirement,
+            quantity: parsedQuantity,
+            quantityInput: formatQuantity(parsedQuantity),
+            inventoryQuantity: undefined,
+            inventoryUnit: undefined,
+          };
+        }
+
+        return {
+          ...requirement,
+          quantityInput: formatQuantity(requirement.quantity),
+        };
+      })
+    );
+  };
+
+  const removeEditableRequirement = (localId: string) => {
+    setEditableRequirements((prev) =>
+      prev.filter((requirement) => requirement.localId !== localId)
+    );
+  };
+
+  const handleAddIngredient = () => {
+    const trimmedName = addIngredientDraft.name.trim();
+    const parsedQuantity = Number(addIngredientDraft.quantity);
+    const trimmedUnit = addIngredientDraft.unit.trim();
+
+    if (!trimmedName || !Number.isFinite(parsedQuantity) || parsedQuantity <= 0 || !trimmedUnit) {
+      setDishError('Enter a valid ingredient name, quantity, and unit before adding.');
+      return;
+    }
+
+    setEditableRequirements((prev) => [
+      ...prev,
+      {
+        localId: generateId(),
+        name: trimmedName,
+        quantity: parsedQuantity,
+        quantityInput: formatQuantity(parsedQuantity),
+        unit: trimmedUnit,
+        importance: 'essential',
+      },
+    ]);
+    setDishError(null);
+    setAddIngredientDraft({
+      name: '',
+      quantity: '',
+      unit: 'pcs',
+    });
+    setShowUpdateConfirmation(false);
   };
 
   const handleApplyDishUpdate = async () => {
@@ -494,6 +627,8 @@ export function CookAtHome({
         }).`
       );
       setDishAnalysis(null);
+      setEditableRequirements([]);
+      setShowUpdateConfirmation(false);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Unable to update grocery inventory.';
@@ -625,7 +760,9 @@ export function CookAtHome({
                       setDishInput(event.target.value);
                       setSelectedDish(event.target.value.trim() || null);
                       setDishAnalysis(null);
+                      setEditableRequirements([]);
                       setAnalysisServings(null);
+                      setShowUpdateConfirmation(false);
                       setDishError(null);
                       setDishSuccess(null);
                     }}
@@ -637,7 +774,9 @@ export function CookAtHome({
                       onClick={() => {
                         setServings((prev) => Math.max(1, prev - 1));
                         setDishAnalysis(null);
+                        setEditableRequirements([]);
                         setAnalysisServings(null);
+                        setShowUpdateConfirmation(false);
                         setDishError(null);
                         setDishSuccess(null);
                       }}
@@ -655,7 +794,9 @@ export function CookAtHome({
                       onClick={() => {
                         setServings((prev) => prev + 1);
                         setDishAnalysis(null);
+                        setEditableRequirements([]);
                         setAnalysisServings(null);
+                        setShowUpdateConfirmation(false);
                         setDishError(null);
                         setDishSuccess(null);
                       }}
@@ -743,7 +884,9 @@ export function CookAtHome({
                 className={styles.reviewCloseButton}
                 onClick={() => {
                   setDishAnalysis(null);
+                  setEditableRequirements([]);
                   setAnalysisServings(null);
+                  setShowUpdateConfirmation(false);
                   setDishError(null);
                 }}
                 aria-label="Close ingredient review"
@@ -764,40 +907,186 @@ export function CookAtHome({
                 <div className={styles.ingredientList}>
                   {preview.requirements.map((entry) => (
                     <div
-                      key={`${entry.requirement.name}-${entry.requirement.unit}`}
+                      key={(entry.requirement as EditableIngredientRequirement).localId}
                       className={styles.ingredientRow}
                     >
                       <div className={styles.ingredientMain}>
-                        <span className={styles.ingredientName}>{entry.requirement.name}</span>
-                        <span className={styles.ingredientMeta}>
-                          {formatQuantity(entry.requirement.quantity)} {entry.requirement.unit}
-                          {entry.requirement.inventoryQuantity && entry.requirement.inventoryUnit
-                            ? ` • ${formatQuantity(entry.requirement.inventoryQuantity)} ${entry.requirement.inventoryUnit} for inventory`
-                            : ''}
-                        </span>
+                        <div className={styles.ingredientTextBlock}>
+                          <div className={styles.ingredientTitleRow}>
+                            <span className={styles.ingredientName}>{entry.requirement.name}</span>
+                            {entry.status !== 'ready' ? (
+                              <span className={styles.ingredientHint}>
+                                {entry.status === 'missing' ? 'Need item' : 'Check stock'}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                        <div className={styles.ingredientControls}>
+                          <input
+                            className={styles.ingredientQuantityInput}
+                            type="text"
+                            inputMode="decimal"
+                            value={
+                              (entry.requirement as EditableIngredientRequirement).quantityInput ??
+                              formatQuantity(entry.requirement.quantity)
+                            }
+                            onChange={(event) =>
+                              handleQuantityInputChange(
+                                (entry.requirement as EditableIngredientRequirement).localId,
+                                event.target.value
+                              )
+                            }
+                            onBlur={() =>
+                              handleQuantityInputBlur(
+                                (entry.requirement as EditableIngredientRequirement).localId
+                              )
+                            }
+                            aria-label={`Quantity for ${entry.requirement.name}`}
+                          />
+                          <span className={styles.ingredientUnitLabel}>
+                            {entry.requirement.unit}
+                          </span>
+                        </div>
                       </div>
                       <div className={styles.ingredientSide}>
-                        <span
-                          className={`${styles.matchPill} ${
-                            entry.status === 'ready'
-                              ? styles.matchReady
-                              : entry.status === 'low'
-                                ? styles.matchLow
-                                : styles.matchMissing
-                          }`}
+                        <button
+                          type="button"
+                          className={styles.removeIngredientButton}
+                          onClick={() =>
+                            removeEditableRequirement(
+                              (entry.requirement as EditableIngredientRequirement).localId
+                            )
+                          }
+                          aria-label={`Remove ${entry.requirement.name}`}
+                          title="Remove ingredient"
                         >
-                          {entry.status === 'ready'
-                            ? 'Ready'
-                            : entry.status === 'low'
-                              ? 'Low'
-                              : 'Missing'}
-                        </span>
-                        <span className={styles.ingredientNote}>{entry.note}</span>
+                          <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                            className={styles.deleteIcon}
+                          >
+                            <path
+                              d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm-1 11V8h12v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   ))}
                 </div>
 
+                <div className={styles.addIngredientCard}>
+                  <h4 className={styles.summaryTitle}>Add missing ingredient</h4>
+                  <div className={styles.addIngredientRow}>
+                    <input
+                      className={styles.textInput}
+                      type="text"
+                      placeholder="Ingredient name"
+                      value={addIngredientDraft.name}
+                      onChange={(event) =>
+                        setAddIngredientDraft((prev) => ({ ...prev, name: event.target.value }))
+                      }
+                    />
+                    <input
+                      className={styles.ingredientQuantityInput}
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="Qty"
+                      value={addIngredientDraft.quantity}
+                      onChange={(event) =>
+                        setAddIngredientDraft((prev) => ({
+                          ...prev,
+                          quantity: event.target.value,
+                        }))
+                      }
+                    />
+                    <input
+                      className={styles.ingredientUnitInput}
+                      type="text"
+                      placeholder="Unit"
+                      value={addIngredientDraft.unit}
+                      onChange={(event) =>
+                        setAddIngredientDraft((prev) => ({ ...prev, unit: event.target.value }))
+                      }
+                    />
+                    <button
+                      type="button"
+                      className={styles.ghostButton}
+                      onClick={handleAddIngredient}
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <p className={styles.ingredientMeta}>
+                    Common grocery categories: {CATEGORY_SECTIONS.slice(0, 4).map((category) => category.title).join(', ')}.
+                  </p>
+                </div>
+
+                {!canApplyDishUpdate ? (
+                  <p className={styles.warningText}>Not enough matched stock to update.</p>
+                ) : preview.requirements.some((entry) => entry.status !== 'ready') ? (
+                  <p className={styles.warningText}>Only matched in-stock items will be updated.</p>
+                ) : null}
+              </div>
+
+              <div className={styles.reviewFooter}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => setShowUpdateConfirmation(true)}
+                  disabled={!canApplyDishUpdate || isApplyingDishUpdate}
+                >
+                  Review update
+                </button>
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() => {
+                    setDishAnalysis(null);
+                    setEditableRequirements([]);
+                    setAnalysisServings(null);
+                    setShowUpdateConfirmation(false);
+                    setDishError(null);
+                  }}
+                  disabled={isApplyingDishUpdate}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {showUpdateConfirmation && preview ? (
+        <div
+          className={styles.reviewOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm grocery update"
+        >
+          <div className={styles.reviewDialog}>
+            <div className={styles.reviewCard}>
+              <button
+                type="button"
+                className={styles.reviewCloseButton}
+                onClick={() => setShowUpdateConfirmation(false)}
+                aria-label="Close update review"
+              >
+                x
+              </button>
+              <div className={styles.reviewHeader}>
+                <div>
+                  <h3 className={styles.reviewTitle}>Confirm grocery update</h3>
+                  <p className={styles.reviewMeta}>
+                    Review how your saved inventory will change before confirming.
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.reviewScrollArea}>
                 <div className={styles.updateSummary}>
                   <h4 className={styles.summaryTitle}>After update</h4>
                   {preview.inventoryUpdates.length === 0 ? (
@@ -839,19 +1128,15 @@ export function CookAtHome({
                   onClick={() => void handleApplyDishUpdate()}
                   disabled={!canApplyDishUpdate || isApplyingDishUpdate}
                 >
-                  {isApplyingDishUpdate ? 'Updating...' : 'Update ingredients'}
+                  {isApplyingDishUpdate ? 'Updating...' : 'Confirm update'}
                 </button>
                 <button
                   type="button"
                   className={styles.ghostButton}
-                  onClick={() => {
-                    setDishAnalysis(null);
-                    setAnalysisServings(null);
-                    setDishError(null);
-                  }}
+                  onClick={() => setShowUpdateConfirmation(false)}
                   disabled={isApplyingDishUpdate}
                 >
-                  Cancel
+                  Back
                 </button>
               </div>
             </div>

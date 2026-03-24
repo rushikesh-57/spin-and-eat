@@ -23,6 +23,7 @@ export interface UserProfilePreferences {
   dietPreference: DietPreference;
   spicePreference: SpicePreference;
   familyMembers: number;
+  whatsappNumber: string;
 }
 
 export type UserProfileSetupStatus = 'skipped' | 'completed';

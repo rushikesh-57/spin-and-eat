@@ -43,6 +43,7 @@ export const DEFAULT_USER_PROFILE: UserProfilePreferences = {
   dietPreference: 'no-preference',
   spicePreference: 'medium',
   familyMembers: 2,
+  whatsappNumber: '',
 };
 
 export function loadOnboardingChoice(userId: string): OnboardingChoice | null {
@@ -172,6 +173,10 @@ export function loadUserProfile(userId: string): UserProfilePreferences {
         parsed.familyMembers > 0
           ? Math.max(1, Math.round(parsed.familyMembers))
           : DEFAULT_USER_PROFILE.familyMembers,
+      whatsappNumber:
+        typeof parsed.whatsappNumber === 'string'
+          ? parsed.whatsappNumber
+          : DEFAULT_USER_PROFILE.whatsappNumber,
     };
   } catch {
     return DEFAULT_USER_PROFILE;

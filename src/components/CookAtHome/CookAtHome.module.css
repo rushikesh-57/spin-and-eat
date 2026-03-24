@@ -282,6 +282,10 @@
   gap: 0.7rem;
 }
 
+.ingredientRow {
+  position: relative;
+}
+
 .reviewMeta,
 .reviewMeta,
 .ingredientMeta,
@@ -301,6 +305,13 @@
 .summaryItemName {
   margin: 0;
   color: var(--color-text);
+}
+
+.ingredientName {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .reviewTitle {
@@ -399,8 +410,102 @@
   flex: 1;
 }
 
+.ingredientTextBlock {
+  min-width: 0;
+  flex: 1;
+}
+
+.ingredientTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.ingredientHint {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.ingredientControls {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
 .ingredientSide {
   justify-content: flex-end;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
+  min-height: 1.9rem;
+}
+
+.ingredientQuantityInput,
+.ingredientUnitInput,
+.ingredientUnitLabel {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 0.52rem 0.6rem;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.ingredientQuantityInput {
+  width: 5.25rem;
+  text-align: center;
+}
+
+.ingredientUnitInput,
+.ingredientUnitLabel {
+  width: 4.25rem;
+}
+
+.ingredientUnitLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: none;
+}
+
+.removeIngredientButton {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: none;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-soft);
+}
+
+.deleteIcon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.addIngredientCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.addIngredientRow {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
   flex-wrap: wrap;
 }
 
@@ -568,9 +673,30 @@
     gap: 0.35rem;
   }
 
+  .ingredientMain {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .ingredientTextBlock {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ingredientTitleRow {
+    gap: 0.35rem;
+  }
+
+  .ingredientHint {
+    font-size: 0.68rem;
+  }
+
   .ingredientName,
   .summaryItemName {
     font-size: 0.83rem;
+    line-height: 1.25;
   }
 
   .ingredientMeta,
@@ -578,13 +704,60 @@
   .summaryDelta,
   .ingredientNote {
     font-size: 0.76rem;
+    line-height: 1.35;
+    white-space: normal;
+    word-break: break-word;
   }
 
   .ingredientStatusBlock,
   .summaryNumbers,
   .ingredientSide {
-    align-items: flex-end;
-    text-align: right;
+    align-items: center;
+    text-align: left;
+  }
+
+  .ingredientQuantityInput,
+  .ingredientUnitInput,
+  .ingredientUnitLabel {
+    width: 4.1rem;
+    min-width: 4.1rem;
+    padding: 0.38rem 0.46rem;
+    font-size: 0.74rem;
+  }
+
+  .ingredientControls {
+    width: auto;
+    display: flex;
+    justify-content: flex-start;
+    padding-right: 0;
+  }
+
+  .ingredientSide {
+    width: auto;
+    display: flex;
+    gap: 0;
+    align-items: center;
+    text-align: left;
+  }
+
+  .removeIngredientButton {
+    position: static;
+    width: 1.85rem;
+    height: 1.85rem;
+    font-size: 0.75rem;
+  }
+
+  .deleteIcon {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  .addIngredientRow {
+    align-items: stretch;
+  }
+
+  .addIngredientRow .textInput {
+    flex: 1 1 100%;
   }
 
   .reviewCloseButton {
