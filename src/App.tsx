@@ -17,6 +17,7 @@ import { TabBar } from './components/layout/TabBar';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { ProfilePanel } from './components/layout/ProfilePanel';
 import { playSpinCompleteSound } from './utils/sound';
+import { usePwaInstall } from './hooks/usePwaInstall';
 import {
   DEFAULT_USER_PROFILE,
   loadOnboardingChoice,
@@ -52,6 +53,8 @@ function App() {
     !window.matchMedia(MOBILE_LAYOUT_QUERY).matches
   );
   const [showMobileResult, setShowMobileResult] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
@@ -63,6 +66,7 @@ function App() {
   const kitchen = useGroceryInventory(userId);
   const history = useSpinHistory();
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(food.filteredItems);
+  const { canInstall, promptInstall } = usePwaInstall();
   const isLoggedIn = Boolean(userName);
 
   const handleSpin = useCallback(() => {
@@ -147,6 +151,19 @@ function App() {
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
 
@@ -317,8 +334,50 @@ function App() {
         onToggleTheme={handleToggleTheme}
       />
 
-      <main className={styles.main}>
-        {showAuthPage ? (
+        <main className={styles.main}>
+          {!isOnline ? (
+            <section className={styles.offlineNotice} aria-label="Offline notice">
+              <p className={styles.noticeTitle}>You are offline</p>
+              <p className={styles.noticeText}>
+                Browsing the app still works, but login, profile sync, meal suggestions, ingredient
+                analysis, WhatsApp sharing, and cloud updates need internet.
+              </p>
+            </section>
+          ) : null}
+
+          {canInstall && showInstallBanner ? (
+            <section className={styles.installBanner} aria-label="Install app">
+              <div>
+                <p className={styles.noticeTitle}>Install Spin &amp; Eat</p>
+                <p className={styles.noticeText}>
+                  Add this app to your home screen for a faster, full-screen experience.
+                </p>
+              </div>
+              <div className={styles.installActions}>
+                <button
+                  type="button"
+                  className={styles.installPrimary}
+                  onClick={async () => {
+                    const installed = await promptInstall();
+                    if (installed) {
+                      setShowInstallBanner(false);
+                    }
+                  }}
+                >
+                  Install app
+                </button>
+                <button
+                  type="button"
+                  className={styles.installSecondary}
+                  onClick={() => setShowInstallBanner(false)}
+                >
+                  Not now
+                </button>
+              </div>
+            </section>
+          ) : null}
+
+          {showAuthPage ? (
           <LoginScreen
             authError={authError}
             onLogin={handleLogin}

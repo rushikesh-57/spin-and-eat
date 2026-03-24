@@ -171,6 +171,67 @@
   gap: 1rem;
 }
 
+.installBanner,
+.offlineNotice {
+  border-radius: 20px;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.installBanner {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(251, 191, 36, 0.1)),
+    var(--color-surface);
+}
+
+.offlineNotice {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(249, 115, 22, 0.08)),
+    var(--color-surface);
+}
+
+.noticeTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.noticeText {
+  margin: 0.3rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.93rem;
+}
+
+.installActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+}
+
+.installPrimary,
+.installSecondary {
+  border-radius: 999px;
+  padding: 0.72rem 1.2rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.installPrimary {
+  border: none;
+  background: var(--color-accent);
+  color: #fff7ed;
+  box-shadow: var(--shadow-soft);
+}
+
+.installSecondary {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
 .onboardingTitle {
   margin: 0;
   font-size: 1.2rem;
@@ -256,5 +317,22 @@
 
   .onboardingCard {
     padding: 1.75rem;
+  }
+}
+
+@media (max-width: 719px) {
+  .installBanner,
+  .offlineNotice {
+    padding: 0.95rem 1rem;
+  }
+
+  .installActions {
+    flex-direction: column;
+  }
+
+  .installPrimary,
+  .installSecondary {
+    width: 100%;
+    min-height: 3rem;
   }
 }
