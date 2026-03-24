@@ -66,7 +66,7 @@ function App() {
   const kitchen = useGroceryInventory(userId);
   const history = useSpinHistory();
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(food.filteredItems);
-  const { canInstall, promptInstall } = usePwaInstall();
+  const { canInstall, isInstalled, promptInstall } = usePwaInstall();
   const isLoggedIn = Boolean(userName);
 
   const handleSpin = useCallback(() => {
@@ -330,6 +330,9 @@ function App() {
         }}
         onProfileClick={handleProfileClick}
         onLogout={handleLogout}
+        canInstallApp={canInstall}
+        isAppInstalled={isInstalled}
+        onInstallApp={promptInstall}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />

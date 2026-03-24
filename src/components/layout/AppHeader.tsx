@@ -1,4 +1,5 @@
-﻿import styles from './AppHeader.module.css';
+import styles from './AppHeader.module.css';
+import { useAlertDialog } from './AlertDialogProvider';
 
 interface AppHeaderProps {
   isLoggedIn: boolean;
@@ -8,6 +9,9 @@ interface AppHeaderProps {
   onLoginClick: () => void;
   onProfileClick: () => void;
   onLogout: () => void;
+  canInstallApp: boolean;
+  isAppInstalled: boolean;
+  onInstallApp: () => Promise<boolean>;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
@@ -27,9 +31,35 @@ export function AppHeader({
   onLoginClick,
   onProfileClick,
   onLogout,
+  canInstallApp,
+  isAppInstalled,
+  onInstallApp,
   theme,
   onToggleTheme,
 }: AppHeaderProps) {
+  const { notify } = useAlertDialog();
+
+  const handleInstallClick = async () => {
+    if (isAppInstalled) {
+      await notify({
+        title: 'App already installed',
+        message: 'Spin & Eat is already installed on this device.',
+      });
+      return;
+    }
+
+    if (canInstallApp) {
+      await onInstallApp();
+      return;
+    }
+
+    await notify({
+      title: 'Install Spin & Eat',
+      message:
+        'If your browser does not show the install prompt, open the browser menu or Share menu and choose Install app or Add to Home Screen.',
+    });
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -75,6 +105,15 @@ export function AppHeader({
         </nav>
 
         <div className={styles.actions}>
+          <button
+            type="button"
+            className={isAppInstalled ? styles.installButtonInstalled : styles.installButton}
+            onClick={handleInstallClick}
+            aria-label={isAppInstalled ? 'App installed' : 'Install app'}
+            title={isAppInstalled ? 'Installed' : 'Install app'}
+          >
+            {isAppInstalled ? 'Installed' : 'Install app'}
+          </button>
           {isLoggedIn ? (
             <>
               <button type="button" className={styles.avatarButton} onClick={onProfileClick}>

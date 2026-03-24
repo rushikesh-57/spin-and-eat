@@ -90,6 +90,36 @@
   gap: 0.4rem;
 }
 
+.installButton,
+.installButtonInstalled {
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.48rem 0.95rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.installButton {
+  background: #fff7ed;
+  color: #9a3412;
+  box-shadow: 0 10px 22px rgba(249, 115, 22, 0.16);
+}
+
+.installButton:hover {
+  transform: translateY(-1px);
+  background: #ffedd5;
+}
+
+.installButtonInstalled {
+  background: rgba(34, 197, 94, 0.14);
+  color: #166534;
+}
+
 .themeButton {
   border: none;
   border-radius: 50%;
@@ -222,5 +252,11 @@
 @media (max-width: 899px) {
   .themeButton {
     display: none;
+  }
+
+  .installButton,
+  .installButtonInstalled {
+    padding: 0.46rem 0.78rem;
+    font-size: 0.8rem;
   }
 }
