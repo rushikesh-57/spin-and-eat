@@ -27,8 +27,6 @@ type Props = {
   userProfile: UserProfilePreferences;
 };
 
-type Mode = 'ideas' | 'manual';
-
 type RequirementPreview = {
   requirement: DishIngredientRequirement;
   matchedItem: GroceryItem | null;
@@ -239,7 +237,6 @@ export function CookAtHome({
   defaultServings,
   userProfile,
 }: Props) {
-  const [mode, setMode] = useState<Mode>('ideas');
   const [mealSuggestions, setMealSuggestions] = useState<MealSuggestion[]>([]);
   const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
   const [mealError, setMealError] = useState<string | null>(null);
@@ -297,7 +294,6 @@ export function CookAtHome({
 
   const handleCookSelectedDish = (dishName: string) => {
     setShowMobileResult(false);
-    setMode('manual');
     setDishInput(dishName);
     setSelectedDish(dishName);
     setDishAnalysis(null);
@@ -657,7 +653,7 @@ export function CookAtHome({
         >
           <span className={styles.panelToggleText}>
             <span className={styles.panelSectionTitle}>Cook</span>
-            <span className={styles.panelSectionSubtitle}>Pick a path.</span>
+            <span className={styles.panelSectionSubtitle}>Generate ideas or enter a dish directly.</span>
           </span>
           <span className={styles.panelToggleIcon} aria-hidden="true">
             {openSections.ideas ? 'Hide' : 'Show'}
@@ -665,26 +661,6 @@ export function CookAtHome({
         </button>
         {openSections.ideas ? (
           <div id="cook-ideas-content" className={styles.panelContent}>
-            <div className={styles.modeSwitch} role="tablist" aria-label="Cook mode">
-              <button
-                type="button"
-                className={`${styles.modeButton} ${mode === 'ideas' ? styles.modeButtonActive : ''}`}
-                onClick={() => setMode('ideas')}
-                aria-pressed={mode === 'ideas'}
-              >
-                Generate ideas
-              </button>
-              <button
-                type="button"
-                className={`${styles.modeButton} ${mode === 'manual' ? styles.modeButtonActive : ''}`}
-                onClick={() => setMode('manual')}
-                aria-pressed={mode === 'manual'}
-              >
-                I know the dish
-              </button>
-            </div>
-
-            {mode === 'ideas' ? (
               <>
                 <div className={styles.actionButtons}>
                   <button
@@ -748,8 +724,6 @@ export function CookAtHome({
                   </div>
                 )}
 
-              </>
-            ) : (
               <div className={styles.composeCard}>
                 <div className={styles.inputRow}>
                   <input
@@ -818,7 +792,7 @@ export function CookAtHome({
                   Quantities will be calculated for {servings} {servings === 1 ? 'person' : 'people'}.
                 </p>
               </div>
-            )}
+              </>
             {dishError ? <p className={styles.errorText}>{dishError}</p> : null}
             {dishSuccess ? <p className={styles.successText}>{dishSuccess}</p> : null}
 

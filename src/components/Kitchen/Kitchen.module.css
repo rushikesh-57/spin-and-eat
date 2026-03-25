@@ -432,6 +432,25 @@
   color: var(--color-text-muted);
 }
 
+.quantitySummary {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.quantityavailable {
+  color: #15803d;
+}
+
+.quantitylow {
+  color: #b45309;
+}
+
+.quantityout {
+  color: #b91c1c;
+}
+
 .rowActions {
   display: flex;
   flex-wrap: nowrap;
@@ -463,30 +482,6 @@
 .deleteIcon {
   width: 0.95rem;
   height: 0.95rem;
-}
-
-.statusPill {
-  border: none;
-  border-radius: var(--radius-full);
-  padding: 0.28rem 0.55rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  align-self: center;
-}
-
-.statusavailable {
-  background: rgba(34, 197, 94, 0.15);
-  color: #15803d;
-}
-
-.statuslow {
-  background: rgba(234, 179, 8, 0.15);
-  color: #a16207;
-}
-
-.statusout {
-  background: rgba(239, 68, 68, 0.12);
-  color: #b91c1c;
 }
 
 @media (max-width: 640px) {
@@ -590,13 +585,14 @@
   .list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
+    gap: 0.55rem;
   }
 
   .listRowCompact {
     grid-template-columns: minmax(0, 1fr);
-    gap: 0.35rem;
-    padding: 0.42rem 0.48rem;
+    gap: 0.45rem;
+    min-height: auto;
+    padding: 0.78rem;
   }
 
   .listRowEditing {
@@ -645,17 +641,55 @@
   }
 
   .rowActions {
-    width: auto;
-    justify-content: flex-end;
-  }
-
-  .statusPill {
-    justify-self: end;
-    align-self: start;
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    flex-direction: row;
+    align-items: center;
+    position: static;
+    margin-top: 0.15rem;
   }
 
   .listRowEditing .rowActions {
     flex-shrink: 0;
+  }
+
+  .itemInfo {
+    gap: 0.3rem;
+  }
+
+  .itemName {
+    font-size: 1rem;
+    line-height: 1.25;
+  }
+
+  .itemMeta {
+    font-size: 0.88rem;
+    line-height: 1.32;
+  }
+
+  .rowActions .ghostButton,
+  .rowActions .dangerButton,
+  .rowActions .primaryButton {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.76rem;
+    flex: 0 0 auto;
+  }
+
+  .rowActions .ghostButton {
+    min-width: 4rem;
+  }
+
+  .deleteActionButton {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
+    position: static;
+  }
+
+  .deleteIcon {
+    width: 1.02rem;
+    height: 1.02rem;
   }
 
   .closeButton {

@@ -636,21 +636,16 @@ export function Kitchen({
                                           <div className={styles.itemInfo}>
                                             <div className={styles.itemName}>{item.name}</div>
                                             <div className={styles.itemMeta}>
-                                              {item.remainingQuantity} / {item.orderedQuantity}{' '}
-                                              {item.unit || 'units'}
-                                            </div>
-                                            <div className={styles.itemMeta}>
-                                              {FREQUENCY_LABELS[item.frequency]}
+                                              <span
+                                                className={`${styles.quantitySummary} ${
+                                                  styles[`quantity${item.status}`]
+                                                }`}
+                                              >
+                                                {item.remainingQuantity} / {item.orderedQuantity}{' '}
+                                                {item.unit || 'units'}
+                                              </span>
                                             </div>
                                           </div>
-                                          <button
-                                            type="button"
-                                            className={`${styles.statusPill} ${styles[`status${item.status}`]}`}
-                                            disabled
-                                            aria-disabled="true"
-                                          >
-                                            {STATUS_LABELS[item.status]}
-                                          </button>
                                           <div className={styles.rowActions}>
                                             <button
                                               type="button"
