@@ -56,7 +56,7 @@ export function AppHeader({
     await notify({
       title: 'Install Spin & Eat',
       message:
-        'If your browser does not show the install prompt, open the browser menu or Share menu and choose Install app or Add to Home Screen.',
+        'If the install prompt is not ready yet, refresh once after the app loads. If it still does not appear, use the browser menu or Share menu and choose Install app or Add to Home Screen.',
     });
   };
 
