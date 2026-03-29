@@ -1,40 +1,96 @@
 const normalize = (value: string) => value.trim().toLowerCase();
 
-export const CATEGORY_DEFINITIONS = [
+type GroceryCategoryDefinition = {
+  id: string;
+  title: string;
+  keywords: string[];
+};
+
+const CATEGORY_DEFINITIONS: GroceryCategoryDefinition[] = [
   {
-    id: 'fresh',
-    title: 'Fruits & Vegetables',
+    id: 'vegetables',
+    title: 'Vegetables',
     keywords: [
       'tomato',
       'onion',
       'potato',
+      'cauliflower',
+      'brinjal',
+      'eggplant',
+      'cabbage',
+      'capsicum',
+      'bell pepper',
+      'beans',
+      'carrot',
+      'beetroot',
+      'okra',
+      'bhindi',
+      'bottle gourd',
+      'lauki',
+      'ridge gourd',
+      'tori',
+      'pumpkin',
+      'peas',
+      'corn',
+      'broccoli',
+      'mushroom',
+      'cucumber',
+      'radish',
+    ],
+  },
+  {
+    id: 'fruits',
+    title: 'Fruits',
+    keywords: [
       'banana',
       'apple',
       'mango',
       'orange',
+      'mosambi',
+      'sweet lime',
       'pomegranate',
       'papaya',
       'grapes',
       'guava',
-      'spinach',
-      'palak',
-      'methi',
-      'garlic',
-      'ginger',
-      'green chilli',
-      'coriander leaves',
-      'curry leaves',
-      'cauliflower',
-      'brinjal',
-      'cabbage',
-      'capsicum',
-      'beans',
-      'carrot',
+      'watermelon',
+      'melon',
+      'pineapple',
+      'pear',
+      'kiwi',
+      'strawberry',
+      'blueberry',
+      'fruit',
     ],
   },
   {
-    id: 'atta',
-    title: 'Atta, Rice & Dal',
+    id: 'herbs',
+    title: 'Herbs, Greens & Aromatics',
+    keywords: [
+      'spinach',
+      'palak',
+      'methi',
+      'amaranth',
+      'coriander',
+      'coriander leaves',
+      'cilantro',
+      'curry leaves',
+      'mint',
+      'pudina',
+      'spring onion',
+      'green onion',
+      'garlic',
+      'ginger',
+      'green chilli',
+      'green chili',
+      'chilli',
+      'chili',
+      'lemongrass',
+      'basil',
+    ],
+  },
+  {
+    id: 'grains',
+    title: 'Flours, Rice & Grains',
     keywords: [
       'atta',
       'flour',
@@ -54,23 +110,39 @@ export const CATEGORY_DEFINITIONS = [
       'bajra',
       'ragi',
       'millet',
+      'poha',
+      'flattened rice',
+      'quinoa',
+      'oats',
+    ],
+  },
+  {
+    id: 'pulses',
+    title: 'Dal, Pulses & Legumes',
+    keywords: [
       'dal',
       'lentil',
       'toor',
+      'arhar',
       'urad',
       'moong',
       'masoor',
       'chana',
       'rajma',
       'kabuli',
-      'kala',
+      'kala chana',
       'lobia',
+      'black eyed',
       'matki',
+      'peas dry',
+      'soybean',
+      'soya chunk',
+      'beans dry',
     ],
   },
   {
     id: 'dairy',
-    title: 'Dairy & Breakfast',
+    title: 'Dairy, Eggs & Breakfast',
     keywords: [
       'milk',
       'curd',
@@ -80,20 +152,37 @@ export const CATEGORY_DEFINITIONS = [
       'butter',
       'cream',
       'buttermilk',
+      'yogurt',
       'bread',
       'egg',
       'eggs',
+      'toast',
+      'jam',
     ],
   },
   {
-    id: 'masala',
-    title: 'Masala, Oil & Pantry',
+    id: 'protein',
+    title: 'Meat & Seafood',
+    keywords: [
+      'chicken',
+      'mutton',
+      'fish',
+      'prawn',
+      'shrimp',
+      'crab',
+      'keema',
+      'meat',
+      'sausage',
+    ],
+  },
+  {
+    id: 'spices',
+    title: 'Spices, Oil & Cooking Basics',
     keywords: [
       'masala',
       'spice',
       'whole spices',
       'mirchi',
-      'chilli',
       'turmeric',
       'haldi',
       'cumin',
@@ -113,11 +202,14 @@ export const CATEGORY_DEFINITIONS = [
       'salt',
       'sugar',
       'jaggery',
+      'vinegar',
+      'soy sauce',
+      'garam masala',
     ],
   },
   {
-    id: 'snacks',
-    title: 'Snacks & Beverages',
+    id: 'packaged',
+    title: 'Snacks, Beverages & Ready Items',
     keywords: [
       'namkeen',
       'chips',
@@ -131,7 +223,6 @@ export const CATEGORY_DEFINITIONS = [
       'papad',
       'sauce',
       'ready-to-eat',
-      'oats',
       'cornflakes',
       'dry fruits',
       'peanuts',
@@ -141,32 +232,63 @@ export const CATEGORY_DEFINITIONS = [
       'coffee',
       'juice',
       'soda',
+      'drink',
     ],
   },
   {
-    id: 'meat',
-    title: 'Meat, Fish & Eggs',
-    keywords: ['chicken', 'mutton', 'fish', 'prawn', 'egg', 'eggs'],
-  },
-  {
-    id: 'home',
+    id: 'household',
     title: 'Household Essentials',
-    keywords: ['detergent', 'soap', 'shampoo', 'cleaner', 'tissue', 'foil'],
+    keywords: ['detergent', 'soap', 'shampoo', 'cleaner', 'tissue', 'foil', 'sponge', 'brush'],
   },
 ] as const;
 
-export const OTHER_CATEGORY = {
+const OTHER_CATEGORY: GroceryCategoryDefinition = {
   id: 'other',
   title: 'Other Essentials',
-  keywords: [] as string[],
+  keywords: [],
 };
+
+const CATEGORY_BY_ID = new Map<string, GroceryCategoryDefinition>(
+  [...CATEGORY_DEFINITIONS, OTHER_CATEGORY].map((category) => [category.id, category])
+);
+
+const LEGACY_CATEGORY_IDS = new Set([
+  'fresh',
+  'atta',
+  'masala',
+  'snacks',
+  'meat',
+  'home',
+]);
 
 export const CATEGORY_SECTIONS = [...CATEGORY_DEFINITIONS, OTHER_CATEGORY];
 
-export const getCategoryId = (name: string) => {
+export const isKnownCategoryId = (categoryId?: string | null) =>
+  Boolean(categoryId && CATEGORY_BY_ID.has(categoryId));
+
+export const getCategoryDefinition = (categoryId?: string | null) =>
+  (categoryId ? CATEGORY_BY_ID.get(categoryId) : undefined) ?? OTHER_CATEGORY;
+
+export const getCategoryTitle = (categoryId?: string | null) =>
+  getCategoryDefinition(categoryId).title;
+
+export const getCategoryId = (name: string, categoryId?: string | null) => {
+  if (isKnownCategoryId(categoryId)) {
+    return categoryId as string;
+  }
+
   const normalized = normalize(name);
   const match = CATEGORY_DEFINITIONS.find((category) =>
     category.keywords.some((keyword) => normalized.includes(keyword))
   );
-  return match?.id ?? OTHER_CATEGORY.id;
+
+  if (match) {
+    return match.id;
+  }
+
+  if (categoryId && LEGACY_CATEGORY_IDS.has(categoryId)) {
+    return OTHER_CATEGORY.id;
+  }
+
+  return OTHER_CATEGORY.id;
 };

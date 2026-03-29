@@ -16,7 +16,7 @@ import { generateMealSuggestions } from '../../utils/mealSuggestions';
 import { analyzeDishGroceries } from '../../utils/dishGroceries';
 import { generateId } from '../../utils/id';
 import { formatQuantity, resolveRequirementQuantityForInventory } from '../../utils/ingredientUnits';
-import { CATEGORY_SECTIONS } from '../../utils/groceryCategories';
+import { CATEGORY_SECTIONS, getCategoryId, getCategoryTitle } from '../../utils/groceryCategories';
 import { playSpinCompleteSound } from '../../utils/sound';
 import styles from './CookAtHome.module.css';
 
@@ -54,6 +54,16 @@ type AddIngredientDraft = {
   quantity: string;
   unit: string;
 };
+
+const AI_PRIORITY_CATEGORY_IDS = [
+  'vegetables',
+  'herbs',
+  'grains',
+  'pulses',
+  'dairy',
+  'protein',
+  'spices',
+] as const;
 
 const buildWheelItems = (suggestions: string[]): FoodItem[] =>
   suggestions.map((name) => ({
@@ -272,6 +282,40 @@ export function CookAtHome({
     [groceries]
   );
 
+  const aiSelectedCategoryIds = useMemo(() => {
+    const presentPrioritySections = new Set<string>();
+
+    groceries.forEach((item) => {
+      const categoryId = getCategoryId(item.name, item.categoryId);
+      if (AI_PRIORITY_CATEGORY_IDS.includes(categoryId as (typeof AI_PRIORITY_CATEGORY_IDS)[number])) {
+        presentPrioritySections.add(categoryId);
+      }
+    });
+
+    return Array.from(presentPrioritySections);
+  }, [groceries]);
+
+  const selectedAiSectionTitles = useMemo(
+    () => aiSelectedCategoryIds.map((categoryId) => getCategoryTitle(categoryId)),
+    [aiSelectedCategoryIds]
+  );
+
+  const aiScopedGroceries = useMemo(
+    () =>
+      groceries.filter((item) =>
+        aiSelectedCategoryIds.includes(getCategoryId(item.name, item.categoryId))
+      ),
+    [groceries, aiSelectedCategoryIds]
+  );
+
+  const aiScopedAvailableGroceries = useMemo(
+    () =>
+      availableGroceries.filter((item) =>
+        aiSelectedCategoryIds.includes(getCategoryId(item.name, item.categoryId))
+      ),
+    [availableGroceries, aiSelectedCategoryIds]
+  );
+
   const suggestionRows = useMemo(
     () => [
       mealSuggestions.filter((_, index) => index % 2 === 0),
@@ -366,21 +410,33 @@ export function CookAtHome({
       return;
     }
 
+    if (aiScopedAvailableGroceries.length === 0) {
+      setMealError('Add stocked vegetables, flours, dals, dairy, meat, or pantry basics first.');
+      setMealSuggestions([]);
+      setSelectedSuggestions(new Set());
+      setWheelItems([]);
+      return;
+    }
+
     setIsGeneratingMeals(true);
     setMealError(null);
     try {
       const excludeSuggestions = mealSuggestions;
       const suggestions = await generateMealSuggestions(
-        availableGroceries.map((item) => ({
+        aiScopedAvailableGroceries.map((item) => ({
           name: item.name,
           remainingQuantity: item.remainingQuantity,
           unit: item.unit,
           status: item.status,
+          categoryId: getCategoryId(item.name, item.categoryId),
+          categoryTitle: getCategoryTitle(getCategoryId(item.name, item.categoryId)),
         })),
         userProfile,
         {
           maxSuggestions: 10,
           excludeSuggestions,
+          selectedCategoryIds: aiSelectedCategoryIds,
+          selectedCategoryTitles: selectedAiSectionTitles,
         }
       );
       setMealSuggestions((prev) => {
@@ -441,14 +497,20 @@ export function CookAtHome({
     try {
       const analysis = await analyzeDishGroceries(
         trimmedDish,
-        groceries.map((item) => ({
+        aiScopedGroceries.map((item) => ({
           name: item.name,
           remainingQuantity: item.remainingQuantity,
           unit: item.unit,
           status: item.status,
+          categoryId: getCategoryId(item.name, item.categoryId),
+          categoryTitle: getCategoryTitle(getCategoryId(item.name, item.categoryId)),
         })),
         normalizedServings,
-        userProfile
+        userProfile,
+        {
+          selectedCategoryIds: aiSelectedCategoryIds,
+          selectedCategoryTitles: selectedAiSectionTitles,
+        }
       );
       setDishAnalysis(analysis);
       setEditableRequirements(

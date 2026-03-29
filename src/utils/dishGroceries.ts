@@ -10,6 +10,8 @@ type GroceryInput = {
   remainingQuantity: number;
   unit: string;
   status: string;
+  categoryId?: string;
+  categoryTitle?: string;
 };
 
 const sanitizeRequirement = (value: unknown): DishIngredientRequirement | null => {
@@ -59,7 +61,11 @@ export async function analyzeDishGroceries(
   dish: string,
   groceries: GroceryInput[],
   servings: number,
-  profile: UserProfilePreferences
+  profile: UserProfilePreferences,
+  options: {
+    selectedCategoryIds?: string[];
+    selectedCategoryTitles?: string[];
+  } = {}
 ): Promise<DishIngredientAnalysis> {
   const trimmedDish = dish.trim();
   if (!trimmedDish) {
@@ -67,6 +73,7 @@ export async function analyzeDishGroceries(
   }
 
   const normalizedServings = Math.max(1, Math.round(servings || 1));
+  const { selectedCategoryIds = [], selectedCategoryTitles = [] } = options;
 
   const { data, error } = await supabase.functions.invoke('dish-grocery-requirements', {
     body: {
@@ -74,6 +81,8 @@ export async function analyzeDishGroceries(
       groceries,
       servings: normalizedServings,
       profile,
+      selectedCategoryIds,
+      selectedCategoryTitles,
     },
   });
 

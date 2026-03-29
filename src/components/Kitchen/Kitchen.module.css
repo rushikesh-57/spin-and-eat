@@ -254,13 +254,16 @@
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
+  flex: 1 1 12rem;
 }
 
 .editRowInline {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.55rem;
   min-width: 0;
+  width: 100%;
 }
 
 .editFieldLabel {
@@ -412,6 +415,12 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
+.listRowEditing .rowActions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
 .itemInfo {
   display: flex;
   flex-direction: column;
@@ -493,17 +502,19 @@
 
   .editField {
     width: 100%;
+    gap: 0.45rem;
   }
 
   .editField .input {
     flex: 1 1 auto;
+    min-width: 0;
   }
 
   .listRowEditing .rowActions .primaryButton,
   .listRowEditing .rowActions .ghostButton {
-    min-height: 2.5rem;
-    padding: 0.55rem 0.9rem;
-    font-size: 0.82rem;
+    min-height: 2.35rem;
+    padding: 0.45rem 0.72rem;
+    font-size: 0.78rem;
   }
 
   .deleteActionButton {
@@ -598,11 +609,49 @@
   .listRowEditing {
     grid-column: 1 / -1;
     grid-template-columns: 1fr;
+    gap: 0.35rem;
+    padding: 0.6rem;
   }
 
   .editRowInline {
     width: 100%;
-    align-items: center;
+    align-items: end;
+    flex-direction: row;
+    gap: 0.45rem;
+  }
+
+  .listRowEditing .rowActions {
+    width: auto;
+    flex: 0 0 auto;
+    justify-content: flex-end;
+    align-self: end;
+    gap: 0.3rem;
+  }
+
+  .listRowEditing .rowActions .primaryButton,
+  .listRowEditing .rowActions .ghostButton {
+    flex: 0 0 auto;
+  }
+
+  .listRowEditing .itemInfo {
+    gap: 0.08rem;
+  }
+
+  .listRowEditing .itemName {
+    font-size: 0.86rem;
+  }
+
+  .listRowEditing .itemMeta {
+    font-size: 0.68rem;
+  }
+
+  .listRowEditing .editFieldLabel {
+    font-size: 0.66rem;
+  }
+
+  .listRowEditing .editField .input {
+    padding: 0.5rem 0.62rem;
+    font-size: 0.84rem;
   }
 
   .fieldLabel {

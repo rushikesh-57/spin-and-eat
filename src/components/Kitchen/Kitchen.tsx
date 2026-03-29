@@ -95,7 +95,7 @@ export function Kitchen({
   const groupedGroceries = useMemo(() => {
     const groups = new Map<string, GroceryItem[]>();
     filteredGroceries.forEach((item) => {
-      const categoryId = item.categoryId ?? getCategoryId(item.name);
+      const categoryId = getCategoryId(item.name, item.categoryId);
       const next = groups.get(categoryId) ?? [];
       next.push(item);
       groups.set(categoryId, next);
@@ -166,7 +166,7 @@ export function Kitchen({
       unit: item.unit,
       status: item.status,
       frequency: item.frequency,
-      categoryId: item.categoryId,
+      categoryId: getCategoryId(item.name, item.categoryId),
     });
   };
 
@@ -446,7 +446,7 @@ export function Kitchen({
                   />
                 </label>
                 <label className={`${styles.field} ${styles.fieldCategory}`}>
-                  <span className={styles.fieldLabel}>Category</span>
+                  <span className={styles.fieldLabel}>Section</span>
                   <select
                     className={styles.select}
                     value={newItem.categoryId ?? 'auto'}
@@ -504,10 +504,10 @@ export function Kitchen({
             aria-expanded={openSections.inventory}
             aria-controls="kitchen-inventory-content"
           >
-            <span className={styles.panelToggleText}>
+              <span className={styles.panelToggleText}>
               <span className={styles.panelSectionTitle}>Current inventory</span>
               <span className={styles.panelSectionSubtitle}>
-                Search, filter, and update what you have on hand.
+                Search, filter, and manage AI-ready sections like vegetables, fruits, and pantry.
               </span>
             </span>
             <span className={styles.panelToggleIcon} aria-hidden="true">

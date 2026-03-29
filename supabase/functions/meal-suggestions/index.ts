@@ -1,5 +1,5 @@
 import { corsHeaders } from '../_shared/cors.ts';
-import { callOpenRouterJSON } from '../_shared/openrouter.ts';
+import { callOpenRouterJSON, OpenRouterRequestError } from '../_shared/openrouter.ts';
 
 export const config = {
   verify_jwt: false,
@@ -10,6 +10,8 @@ type GroceryInput = {
   remainingQuantity?: number;
   unit?: string;
   status?: string;
+  categoryId?: string;
+  categoryTitle?: string;
 };
 
 type UserProfileInput = {
@@ -20,13 +22,25 @@ type UserProfileInput = {
   familyMembers?: number;
 };
 
-const buildGroceryList = (items: GroceryInput[]) =>
-  items
-    .map((item) => {
-      const name = item.name?.trim() || 'Unknown item';
-      return `- ${name}`;
-    })
-    .join('\n');
+const buildGroceryList = (items: GroceryInput[]) => {
+  const grouped = new Map<string, string[]>();
+
+  items.forEach((item) => {
+    const sectionTitle = item.categoryTitle?.trim() || 'Other essentials';
+    const quantity =
+      typeof item.remainingQuantity === 'number' && Number.isFinite(item.remainingQuantity)
+        ? ` (${item.remainingQuantity} ${item.unit ?? 'units'} left)`
+        : '';
+    const name = item.name?.trim() || 'Unknown item';
+    const next = grouped.get(sectionTitle) ?? [];
+    next.push(`- ${name}${quantity}`);
+    grouped.set(sectionTitle, next);
+  });
+
+  return Array.from(grouped.entries())
+    .map(([sectionTitle, entries]) => `${sectionTitle}:\n${entries.join('\n')}`)
+    .join('\n\n');
+};
 
 const buildProfileContext = (profile?: UserProfileInput) => {
   if (!profile) return '';
@@ -56,6 +70,8 @@ Deno.serve(async (req) => {
     profile?: UserProfileInput;
     maxSuggestions?: number;
     excludeSuggestions?: string[];
+    selectedCategoryIds?: string[];
+    selectedCategoryTitles?: string[];
   } = {};
   try {
     payload = (await req.json()) ?? {};
@@ -78,31 +94,29 @@ Deno.serve(async (req) => {
         .map((item) => item.trim())
         .filter(Boolean)
     : [];
+  const selectedCategoryIds = Array.isArray(payload.selectedCategoryIds)
+    ? payload.selectedCategoryIds
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  const selectedCategoryTitles = Array.isArray(payload.selectedCategoryTitles)
+    ? payload.selectedCategoryTitles
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
 
-  const pantryKeywords = [
-    'masala',
-    'spice',
-    'powder',
-    'chilli',
-    'turmeric',
-    'cumin',
-    'coriander',
-    'pepper',
-    'salt',
-    'sugar',
-    'oil',
-    'ghee',
-    'butter',
-    'vinegar',
-  ];
   const available = groceries.filter((item) => {
     const isAvailable =
       (item.status ?? 'available') !== 'out' &&
       typeof item.remainingQuantity === 'number' &&
       item.remainingQuantity > 0;
-    const name = (item.name ?? '').toLowerCase();
-    const isPantry = pantryKeywords.some((keyword) => name.includes(keyword));
-    return isAvailable && !isPantry;
+    const matchesSelectedSection =
+      selectedCategoryIds.length === 0
+        ? true
+        : selectedCategoryIds.includes(item.categoryId?.trim() ?? '');
+    return isAvailable && matchesSelectedSection;
   });
 
   if (available.length === 0) {
@@ -113,13 +127,19 @@ Deno.serve(async (req) => {
 
   const groceryList = buildGroceryList(available);
   const profileContext = buildProfileContext(profile);
+  const sectionContext =
+    selectedCategoryTitles.length > 0
+      ? `Focus inventory analysis on these grocery sections only:\n${selectedCategoryTitles
+          .map((item) => `- ${item}`)
+          .join('\n')}\n\n`
+      : '';
   const excludedList =
     excludeSuggestions.length > 0
       ? `\nDo not repeat any of these dishes:\n${excludeSuggestions
           .map((item) => `- ${item}`)
           .join('\n')}\n`
       : '\n';
-  const prompt = `${profileContext}Available groceries:\n${groceryList}${excludedList}\nReturn up to ${maxSuggestions} cook-at-home dish names that can be made mainly from the available items. Use the user's diet preference, spice preference, city/context, and family size when they are provided. Only return new dish names that are not in the excluded list. Output a single-line JSON object only (no extra whitespace).`;
+  const prompt = `${profileContext}${sectionContext}Available groceries by section:\n${groceryList}${excludedList}\nReturn up to ${maxSuggestions} cook-at-home dish names that can be made mainly from the available items in the listed sections. Prioritize dishes strongly supported by the selected sections instead of generic pantry-based ideas. Use the user's diet preference, spice preference, city/context, and family size when they are provided. Only return new dish names that are not in the excluded list. Output a single-line JSON object only (no extra whitespace).`;
   try {
     const parsed = await callOpenRouterJSON<{ suggestions?: unknown }>({
       schemaName: 'meal_suggestions',
@@ -158,12 +178,21 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    const message =
+      error instanceof OpenRouterRequestError && error.isRetryable
+        ? 'The AI provider is busy right now. Please try again in a moment.'
+        : error instanceof Error
+          ? error.message
+          : 'OpenRouter request failed.';
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'OpenRouter request failed.',
+        error: message,
       }),
       {
-        status: 500,
+        status:
+          error instanceof OpenRouterRequestError && error.isRetryable
+            ? 503
+            : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

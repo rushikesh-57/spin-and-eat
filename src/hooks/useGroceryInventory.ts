@@ -25,7 +25,7 @@ const mapRowToItem = (row: GroceryRow): GroceryItem => ({
   unit: row.unit,
   status: row.status,
   frequency: row.frequency ?? 'monthly',
-  categoryId: row.category_id ?? undefined,
+  categoryId: getCategoryId(row.name, row.category_id),
 });
 
 const applyStatusToRemaining = (
@@ -114,7 +114,7 @@ export function useGroceryInventory(userId: string | null) {
           unit: item.unit,
           status: item.status,
           frequency: item.frequency,
-          category_id: item.categoryId ?? getCategoryId(item.name),
+          category_id: getCategoryId(item.name, item.categoryId),
         }));
 
         const { data: seeded, error: seedError } = await supabase
@@ -152,7 +152,7 @@ export function useGroceryInventory(userId: string | null) {
               missing.map((row) =>
                 supabase
                   .from('groceries')
-                  .update({ category_id: getCategoryId(row.name) })
+                  .update({ category_id: getCategoryId(row.name, row.category_id) })
                   .eq('id', row.id)
                   .eq('user_id', userId)
               )
@@ -197,7 +197,7 @@ export function useGroceryInventory(userId: string | null) {
           unit: item.unit,
           status: item.status,
           frequency: item.frequency,
-          category_id: item.categoryId ?? getCategoryId(trimmedName),
+          category_id: getCategoryId(trimmedName, item.categoryId),
         })
         .select(
           'id, name, ordered_quantity, remaining_quantity, unit, status, frequency, category_id'
@@ -379,7 +379,7 @@ export function useGroceryInventory(userId: string | null) {
       unit: item.unit,
       status: item.status,
       frequency: item.frequency,
-      category_id: item.categoryId ?? getCategoryId(item.name),
+      category_id: getCategoryId(item.name, item.categoryId),
     }));
 
     const { data, error: insertError } = await supabase

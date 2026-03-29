@@ -6,11 +6,15 @@ type GroceryInput = {
   remainingQuantity: number;
   unit: string;
   status: string;
+  categoryId?: string;
+  categoryTitle?: string;
 };
 
 type GenerateMealSuggestionsOptions = {
   maxSuggestions?: number;
   excludeSuggestions?: string[];
+  selectedCategoryIds?: string[];
+  selectedCategoryTitles?: string[];
 };
 
 export async function generateMealSuggestions(
@@ -18,13 +22,20 @@ export async function generateMealSuggestions(
   profile: UserProfilePreferences,
   options: GenerateMealSuggestionsOptions = {}
 ): Promise<MealSuggestion[]> {
-  const { maxSuggestions = 10, excludeSuggestions = [] } = options;
+  const {
+    maxSuggestions = 10,
+    excludeSuggestions = [],
+    selectedCategoryIds = [],
+    selectedCategoryTitles = [],
+  } = options;
   const { data, error } = await supabase.functions.invoke('meal-suggestions', {
     body: {
       groceries,
       profile,
       maxSuggestions,
       excludeSuggestions,
+      selectedCategoryIds,
+      selectedCategoryTitles,
     },
   });
 

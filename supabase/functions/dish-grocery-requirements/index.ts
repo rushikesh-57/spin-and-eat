@@ -1,5 +1,5 @@
 import { corsHeaders } from '../_shared/cors.ts';
-import { callOpenRouterJSON } from '../_shared/openrouter.ts';
+import { callOpenRouterJSON, OpenRouterRequestError } from '../_shared/openrouter.ts';
 
 export const config = {
   verify_jwt: false,
@@ -10,6 +10,8 @@ type GroceryInput = {
   remainingQuantity?: number;
   unit?: string;
   status?: string;
+  categoryId?: string;
+  categoryTitle?: string;
 };
 
 type UserProfileInput = {
@@ -20,17 +22,25 @@ type UserProfileInput = {
   familyMembers?: number;
 };
 
-const buildGroceryList = (items: GroceryInput[]) =>
-  items
-    .map((item) => {
-      const name = item.name?.trim() || 'Unknown item';
-      const quantity =
-        typeof item.remainingQuantity === 'number' && Number.isFinite(item.remainingQuantity)
-          ? ` (${item.remainingQuantity} ${item.unit ?? 'units'} left)`
-          : '';
-      return `- ${name}${quantity}`;
-    })
-    .join('\n');
+const buildGroceryList = (items: GroceryInput[]) => {
+  const grouped = new Map<string, string[]>();
+
+  items.forEach((item) => {
+    const sectionTitle = item.categoryTitle?.trim() || 'Other essentials';
+    const quantity =
+      typeof item.remainingQuantity === 'number' && Number.isFinite(item.remainingQuantity)
+        ? ` (${item.remainingQuantity} ${item.unit ?? 'units'} left)`
+        : '';
+    const name = item.name?.trim() || 'Unknown item';
+    const next = grouped.get(sectionTitle) ?? [];
+    next.push(`- ${name}${quantity}`);
+    grouped.set(sectionTitle, next);
+  });
+
+  return Array.from(grouped.entries())
+    .map(([sectionTitle, entries]) => `${sectionTitle}:\n${entries.join('\n')}`)
+    .join('\n\n');
+};
 
 const buildProfileContext = (profile?: UserProfileInput) => {
   if (!profile) return '';
@@ -60,6 +70,8 @@ Deno.serve(async (req) => {
     groceries?: GroceryInput[];
     servings?: number;
     profile?: UserProfileInput;
+    selectedCategoryIds?: string[];
+    selectedCategoryTitles?: string[];
   } = {};
   try {
     payload = (await req.json()) ?? {};
@@ -76,6 +88,18 @@ Deno.serve(async (req) => {
       ? Math.max(1, Math.round(payload.servings))
       : 2;
   const profile = payload.profile && typeof payload.profile === 'object' ? payload.profile : undefined;
+  const selectedCategoryIds = Array.isArray(payload.selectedCategoryIds)
+    ? payload.selectedCategoryIds
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  const selectedCategoryTitles = Array.isArray(payload.selectedCategoryTitles)
+    ? payload.selectedCategoryTitles
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
   if (!dish) {
     return new Response(JSON.stringify({ error: 'Dish name is required.' }), {
       status: 400,
@@ -83,10 +107,22 @@ Deno.serve(async (req) => {
     });
   }
 
-  const groceries = Array.isArray(payload.groceries) ? payload.groceries : [];
+  const groceries = Array.isArray(payload.groceries)
+    ? payload.groceries.filter((item) =>
+        selectedCategoryIds.length === 0
+          ? true
+          : selectedCategoryIds.includes(item.categoryId?.trim() ?? '')
+      )
+    : [];
   const groceryList = buildGroceryList(groceries);
   const profileContext = buildProfileContext(profile);
-  const prompt = `${profileContext}Dish: ${dish}\nServings: ${servings} people\n\nAvailable grocery inventory:\n${groceryList || '- No inventory provided'}\n\nReturn the most important grocery ingredients needed to cook this dish for ${servings} people. Use the user's diet preference, spice preference, city/context, and family size when helpful. Scale ingredient quantities to that serving size. Prefer naming ingredients close to the provided inventory items when possible. Include realistic approximate quantities with cooking units. When an ingredient clearly matches an inventory item but the inventory likely uses a different unit system, also include an inventory-friendly equivalent quantity and unit. Example: onion can be 2 pcs for cooking and 0.22 kg for inventory, oil can be 2 tbsp and 30 ml for inventory. Keep those inventory equivalents practical, approximate, and only include them when helpful. Mark must-have ingredients as essential and optional/common garnishes as recommended. Output a single-line JSON object only.`;
+  const sectionContext =
+    selectedCategoryTitles.length > 0
+      ? `Focus inventory matching on these grocery sections only:\n${selectedCategoryTitles
+          .map((item) => `- ${item}`)
+          .join('\n')}\n\n`
+      : '';
+  const prompt = `${profileContext}${sectionContext}Dish: ${dish}\nServings: ${servings} people\n\nAvailable grocery inventory by section:\n${groceryList || '- No inventory provided'}\n\nReturn the most important grocery ingredients needed to cook this dish for ${servings} people. Use the user's diet preference, spice preference, city/context, and family size when helpful. Scale ingredient quantities to that serving size. Prefer naming ingredients close to the provided inventory items when possible, especially from the selected sections. Do not limit the recipe to only those items if the dish clearly needs additional ingredients. Include realistic approximate quantities with cooking units. When an ingredient clearly matches an inventory item but the inventory likely uses a different unit system, also include an inventory-friendly equivalent quantity and unit. Example: onion can be 2 pcs for cooking and 0.22 kg for inventory, oil can be 2 tbsp and 30 ml for inventory. Keep those inventory equivalents practical, approximate, and only include them when helpful. Mark must-have ingredients as essential and optional/common garnishes as recommended. Output a single-line JSON object only.`;
   try {
     const parsed = await callOpenRouterJSON<{
       dish?: unknown;
@@ -149,12 +185,21 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
+    const message =
+      error instanceof OpenRouterRequestError && error.isRetryable
+        ? 'The AI provider is busy right now. Please try again in a moment.'
+        : error instanceof Error
+          ? error.message
+          : 'OpenRouter request failed.';
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'OpenRouter request failed.',
+        error: message,
       }),
       {
-        status: 500,
+        status:
+          error instanceof OpenRouterRequestError && error.isRetryable
+            ? 503
+            : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
