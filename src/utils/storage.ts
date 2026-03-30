@@ -30,6 +30,8 @@ const onboardingKey = (userId: string) => `${STORAGE_KEYS.ONBOARDING_CHOICE}:${u
 const wheelOverrideKey = (userId: string) => `${STORAGE_KEYS.WHEEL_OVERRIDE}:${userId}`;
 const includedFoodIdsKey = (userId: string | null) =>
   `${STORAGE_KEYS.INCLUDED_FOOD_IDS}:${userId ?? 'guest'}`;
+const activeSourceKey = (userId: string | null) =>
+  `${STORAGE_KEYS.ACTIVE_SOURCE}:${userId ?? 'guest'}`;
 const customWheelItemsKey = (userId: string | null) =>
   `${STORAGE_KEYS.CUSTOM_WHEEL_ITEMS}:${userId ?? 'guest'}`;
 const customWheelIncludedIdsKey = (userId: string | null) =>
@@ -316,17 +318,17 @@ export function loadGroceries(fallback: GroceryItem[]): GroceryItem[] {
   }
 }
 
-export function loadActiveSource(): string | null {
+export function loadActiveSource(userId: string | null): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEYS.ACTIVE_SOURCE);
+    return localStorage.getItem(activeSourceKey(userId));
   } catch {
     return null;
   }
 }
 
-export function saveActiveSource(source: string): void {
+export function saveActiveSource(userId: string | null, source: string): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.ACTIVE_SOURCE, source);
+    localStorage.setItem(activeSourceKey(userId), source);
   } catch {
     // ignore
   }

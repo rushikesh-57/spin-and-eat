@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import type { FoodItem, FoodCategory, FoodSource } from '../types';
-import { FOOD_CATEGORIES, FOOD_SOURCES } from '../types';
+import { FOOD_CATEGORIES } from '../types';
 import { SAMPLE_FOODS } from '../data/sampleFoods';
 import {
   loadFoodItems,
@@ -15,7 +15,7 @@ import { generateId } from '../utils/id';
 import { supabase } from '../lib/supabaseClient';
 
 const CATEGORY_IDS = Object.keys(FOOD_CATEGORIES) as FoodCategory[];
-const SOURCE_IDS = Object.keys(FOOD_SOURCES) as FoodSource[];
+const SOURCE_IDS: FoodSource[] = ['outside', 'home'];
 const DEFAULT_INCLUDED_PER_SOURCE = 8;
 
 const sanitizeCategories = (categories: string[] | null): FoodCategory[] | null => {
@@ -27,7 +27,7 @@ const sanitizeCategories = (categories: string[] | null): FoodCategory[] | null 
 };
 
 const normalizeSource = (source: FoodSource | string | undefined): FoodSource =>
-  SOURCE_IDS.includes(source as FoodSource) ? (source as FoodSource) : 'home';
+  SOURCE_IDS.includes(source as FoodSource) ? (source as FoodSource) : 'outside';
 
 const sanitizeItems = (items: FoodItem[]): FoodItem[] =>
   items
@@ -80,8 +80,8 @@ export function useFoodItems(userId: string | null) {
     sanitizeCategories(loadActiveCategories())
   );
   const [activeSource, setActiveSourceState] = useState<FoodSource>(() => {
-    const stored = loadActiveSource();
-    return SOURCE_IDS.includes(stored as FoodSource) ? (stored as FoodSource) : 'home';
+    const stored = loadActiveSource(userId);
+    return SOURCE_IDS.includes(stored as FoodSource) ? (stored as FoodSource) : 'outside';
   });
   const [includedFoodIds, setIncludedFoodIds] = useState<string[] | null>(() =>
     loadIncludedFoodIds(userId)
@@ -98,6 +98,13 @@ export function useFoodItems(userId: string | null) {
 
   useEffect(() => {
     setIncludedFoodIds(loadIncludedFoodIds(userId));
+  }, [userId]);
+
+  useEffect(() => {
+    const stored = loadActiveSource(userId);
+    setActiveSourceState(
+      SOURCE_IDS.includes(stored as FoodSource) ? (stored as FoodSource) : 'outside'
+    );
   }, [userId]);
 
   useEffect(() => {
@@ -172,8 +179,8 @@ export function useFoodItems(userId: string | null) {
 
   const setActiveSource = useCallback((source: FoodSource) => {
     setActiveSourceState(source);
-    saveActiveSource(source);
-  }, []);
+    saveActiveSource(userId, source);
+  }, [userId]);
 
   const toggleIncluded = useCallback(
     (id: string) => {

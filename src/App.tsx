@@ -49,12 +49,11 @@ function App() {
   const [isMobileLayout, setIsMobileLayout] = useState(() =>
     window.matchMedia(MOBILE_LAYOUT_QUERY).matches
   );
-  const [isPlanOpen, setIsPlanOpen] = useState(() =>
-    !window.matchMedia(MOBILE_LAYOUT_QUERY).matches
-  );
+  const [isPlanOpen, setIsPlanOpen] = useState(true);
   const [showMobileResult, setShowMobileResult] = useState(false);
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [shouldPromptProfileSetup, setShouldPromptProfileSetup] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
@@ -140,11 +139,12 @@ function App() {
       if (nextName) {
         setShowLogin(false);
         setAuthError(null);
-        if (event === 'SIGNED_IN' && nextUserId && !loadUserProfileStatus(nextUserId)) {
-          setActiveTab('profile');
+        if (event === 'SIGNED_IN') {
+          setShouldPromptProfileSetup(true);
         }
       } else {
         setActiveTab('spin');
+        setShouldPromptProfileSetup(false);
       }
     });
 
@@ -153,6 +153,21 @@ function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!shouldPromptProfileSetup || !userId) {
+      return;
+    }
+
+    const localProfileStatus = loadUserProfileStatus(userId);
+    const resolvedProfileStatus = profileStatus ?? localProfileStatus ?? null;
+
+    if (resolvedProfileStatus === null) {
+      setActiveTab('profile');
+    }
+
+    setShouldPromptProfileSetup(false);
+  }, [profileStatus, shouldPromptProfileSetup, userId]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -177,7 +192,6 @@ function App() {
 
     const updateLayout = (matches: boolean) => {
       setIsMobileLayout(matches);
-      setIsPlanOpen(!matches);
     };
 
     updateLayout(mediaQuery.matches);
@@ -192,6 +206,12 @@ function App() {
       mediaQuery.removeEventListener('change', handleChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn && activeTab === 'spin') {
+      setIsPlanOpen(true);
+    }
+  }, [activeTab, isLoggedIn]);
 
   useEffect(() => {
     if (isSpinning) {
