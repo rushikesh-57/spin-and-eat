@@ -38,6 +38,10 @@ const FREQUENCY_LABELS: Record<GroceryFrequency, string> = {
   adhoc: 'Ad hoc',
 };
 const UNIT_OPTIONS = ['kg', 'g', 'ml', 'L', 'pcs', 'packs', 'jar', 'bunch', 'units'] as const;
+const FRIENDLY_UNIT_MAP = {
+  kg: { unit: 'g', factor: 1000 },
+  L: { unit: 'ml', factor: 1000 },
+} as const;
 
 const deriveStatusFromQuantities = (
   orderedQuantity: number,
@@ -48,14 +52,41 @@ const deriveStatusFromQuantities = (
   return 'available';
 };
 
-const applyStatusToRemaining = (
-  status: GroceryStatus,
+const clampRemainingQuantity = (
   orderedQuantity: number,
   currentRemaining: number
 ) => {
-  if (status === 'low') return Number((orderedQuantity * 0.2).toFixed(2));
-  if (status === 'out') return 0;
-  return currentRemaining;
+  if (!Number.isFinite(currentRemaining) || currentRemaining <= 0) return 0;
+  if (!Number.isFinite(orderedQuantity) || orderedQuantity <= 0) return 0;
+  return Math.min(currentRemaining, orderedQuantity);
+};
+
+const formatQuantityValue = (value: number) => {
+  if (!Number.isFinite(value)) return '0';
+  if (Math.abs(value - Math.round(value)) < 0.001) {
+    return String(Math.round(value));
+  }
+  return Number(value.toFixed(2)).toString();
+};
+
+const getFriendlyQuantity = (quantity: number, unit: string) => {
+  const nextUnit = FRIENDLY_UNIT_MAP[unit as keyof typeof FRIENDLY_UNIT_MAP];
+  if (!nextUnit || quantity <= 0 || quantity >= 1) {
+    return {
+      quantity,
+      unit,
+    };
+  }
+
+  return {
+    quantity: quantity * nextUnit.factor,
+    unit: nextUnit.unit,
+  };
+};
+
+const formatQuantityWithUnit = (quantity: number, unit: string) => {
+  const friendly = getFriendlyQuantity(quantity, unit);
+  return `${formatQuantityValue(friendly.quantity)} ${friendly.unit || 'units'}`;
 };
 
 export function Kitchen({
@@ -71,6 +102,8 @@ export function Kitchen({
   const [newItem, setNewItem] = useState(defaultNewItem);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState(defaultNewItem);
+  const [editRemainingInput, setEditRemainingInput] = useState('');
+  const [editRemainingInputUnit, setEditRemainingInputUnit] = useState(defaultNewItem.unit);
   const [activePanel, setActivePanel] = useState<'weekly' | 'monthly' | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<GroceryStatus | 'all'>('all');
@@ -129,7 +162,7 @@ export function Kitchen({
         ? ['All items are stocked right now.']
         : generatedList.map(
             (item) =>
-              `- ${item.name}: ${item.remainingQuantity} / ${item.orderedQuantity} ${item.unit || 'units'} (${STATUS_LABELS[item.status]})`
+              `- ${item.name}: ${formatQuantityWithUnit(item.remainingQuantity, item.unit)} / ${formatQuantityWithUnit(item.orderedQuantity, item.unit)} (${STATUS_LABELS[item.status]})`
           );
     const text = [title, '', ...lines].join('\n');
     const whatsappUrl = `https://wa.me/${normalizedWhatsappNumber}?text=${encodeURIComponent(text)}`;
@@ -158,6 +191,7 @@ export function Kitchen({
   };
 
   const handleStartEdit = (item: GroceryItem) => {
+    const friendlyRemaining = getFriendlyQuantity(item.remainingQuantity, item.unit);
     setEditingId(item.id);
     setEditDraft({
       name: item.name,
@@ -168,11 +202,24 @@ export function Kitchen({
       frequency: item.frequency,
       categoryId: getCategoryId(item.name, item.categoryId),
     });
+    setEditRemainingInput(formatQuantityValue(friendlyRemaining.quantity));
+    setEditRemainingInputUnit(friendlyRemaining.unit);
   };
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
     if (!editDraft.name.trim()) return;
+    const parsedRemaining = Number(editRemainingInput);
+    if (Number.isNaN(parsedRemaining) || parsedRemaining < 0) return;
+
+    const convertedRemaining =
+      editDraft.unit === 'kg' && editRemainingInputUnit === 'g'
+        ? parsedRemaining / 1000
+        : editDraft.unit === 'L' && editRemainingInputUnit === 'ml'
+          ? parsedRemaining / 1000
+          : parsedRemaining;
+    const clampedRemaining = clampRemainingQuantity(editDraft.orderedQuantity, convertedRemaining);
+
     const confirmed = await confirm({
       title: 'Save grocery update?',
       message: `This will update the remaining quantity for ${editDraft.name.trim()}.`,
@@ -181,15 +228,10 @@ export function Kitchen({
     if (!confirmed) return;
     const nextStatus = deriveStatusFromQuantities(
       editDraft.orderedQuantity,
-      editDraft.remainingQuantity
-    );
-    const nextRemaining = applyStatusToRemaining(
-      nextStatus,
-      editDraft.orderedQuantity,
-      editDraft.remainingQuantity
+      clampedRemaining
     );
     onUpdateGrocery(editingId, {
-      remainingQuantity: nextRemaining,
+      remainingQuantity: clampedRemaining,
       status: nextStatus,
     });
     setEditingId(null);
@@ -197,18 +239,18 @@ export function Kitchen({
 
   const handleAddItem = () => {
     if (!newItem.name.trim()) return;
-    const nextStatus = deriveStatusFromQuantities(
+    const clampedRemaining = clampRemainingQuantity(
       newItem.orderedQuantity,
       newItem.remainingQuantity
+    );
+    const nextStatus = deriveStatusFromQuantities(
+      newItem.orderedQuantity,
+      clampedRemaining
     );
     onAddGrocery({
       name: newItem.name.trim(),
       orderedQuantity: newItem.orderedQuantity,
-      remainingQuantity: applyStatusToRemaining(
-        nextStatus,
-        newItem.orderedQuantity,
-        newItem.remainingQuantity
-      ),
+      remainingQuantity: clampedRemaining,
       unit: newItem.unit.trim(),
       status: nextStatus,
       frequency: newItem.frequency,
@@ -331,7 +373,8 @@ export function Kitchen({
                           <div>
                             <div className={styles.itemName}>{item.name}</div>
                             <div className={styles.itemMeta}>
-                              {item.remainingQuantity} / {item.orderedQuantity} {item.unit || 'units'}
+                              {formatQuantityWithUnit(item.remainingQuantity, item.unit)} /{' '}
+                              {formatQuantityWithUnit(item.orderedQuantity, item.unit)}
                             </div>
                           </div>
                           <span className={`${styles.statusPill} ${styles[`status${item.status}`]}`}>
@@ -589,28 +632,21 @@ export function Kitchen({
                                           <div className={styles.itemInfo}>
                                             <div className={styles.itemName}>{item.name}</div>
                                             <div className={styles.itemMeta}>
-                                              Ordered: {item.orderedQuantity} {item.unit || 'units'}
+                                              Ordered: {formatQuantityWithUnit(item.orderedQuantity, item.unit)}
                                             </div>
                                           </div>
                                           <div className={styles.editRowInline}>
                                             <label className={styles.editField}>
-                                              <span className={styles.editFieldLabel}>Remaining qty</span>
+                                              <span className={styles.editFieldLabel}>
+                                                Remaining qty ({editRemainingInputUnit})
+                                              </span>
                                               <input
                                                 className={styles.input}
                                                 type="number"
                                                 min="0"
                                                 step="0.1"
-                                                value={
-                                                  Number.isNaN(editDraft.remainingQuantity)
-                                                    ? ''
-                                                    : editDraft.remainingQuantity
-                                                }
-                                                onChange={(event) =>
-                                                  setEditDraft((prev) => ({
-                                                    ...prev,
-                                                    remainingQuantity: Number(event.target.value),
-                                                  }))
-                                                }
+                                                value={editRemainingInput}
+                                                onChange={(event) => setEditRemainingInput(event.target.value)}
                                               />
                                             </label>
                                             <div className={styles.rowActions}>
@@ -641,8 +677,8 @@ export function Kitchen({
                                                   styles[`quantity${item.status}`]
                                                 }`}
                                               >
-                                                {item.remainingQuantity} / {item.orderedQuantity}{' '}
-                                                {item.unit || 'units'}
+                                                {formatQuantityWithUnit(item.remainingQuantity, item.unit)} /{' '}
+                                                {formatQuantityWithUnit(item.orderedQuantity, item.unit)}
                                               </span>
                                             </div>
                                           </div>

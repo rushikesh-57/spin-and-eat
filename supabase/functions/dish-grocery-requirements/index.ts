@@ -16,7 +16,7 @@ type GroceryInput = {
 
 type UserProfileInput = {
   preferredName?: string;
-  city?: string;
+  homeCookingStyle?: string;
   dietPreference?: string;
   spicePreference?: string;
   familyMembers?: number;
@@ -47,7 +47,9 @@ const buildProfileContext = (profile?: UserProfileInput) => {
 
   const details = [
     profile.preferredName?.trim() ? `Preferred name: ${profile.preferredName.trim()}` : null,
-    profile.city?.trim() ? `City: ${profile.city.trim()}` : null,
+    profile.homeCookingStyle?.trim()
+      ? `Home cooking style: ${profile.homeCookingStyle.trim()}`
+      : null,
     profile.dietPreference?.trim() ? `Diet: ${profile.dietPreference.trim()}` : null,
     profile.spicePreference?.trim() ? `Spice preference: ${profile.spicePreference.trim()}` : null,
     typeof profile.familyMembers === 'number' && Number.isFinite(profile.familyMembers)
@@ -122,7 +124,7 @@ Deno.serve(async (req) => {
           .map((item) => `- ${item}`)
           .join('\n')}\n\n`
       : '';
-  const prompt = `${profileContext}${sectionContext}Dish: ${dish}\nServings: ${servings} people\n\nAvailable grocery inventory by section:\n${groceryList || '- No inventory provided'}\n\nReturn the most important grocery ingredients needed to cook this dish for ${servings} people. Use the user's diet preference, spice preference, city/context, and family size when helpful. Scale ingredient quantities to that serving size. Prefer naming ingredients close to the provided inventory items when possible, especially from the selected sections. Do not limit the recipe to only those items if the dish clearly needs additional ingredients. Include realistic approximate quantities with cooking units. When an ingredient clearly matches an inventory item but the inventory likely uses a different unit system, also include an inventory-friendly equivalent quantity and unit. Example: onion can be 2 pcs for cooking and 0.22 kg for inventory, oil can be 2 tbsp and 30 ml for inventory. Keep those inventory equivalents practical, approximate, and only include them when helpful. Mark must-have ingredients as essential and optional/common garnishes as recommended. Output a single-line JSON object only.`;
+  const prompt = `${profileContext}${sectionContext}Dish: ${dish}\nServings: ${servings} people\n\nAvailable grocery inventory by section:\n${groceryList || '- No inventory provided'}\n\nReturn the most important grocery ingredients needed to cook this dish for ${servings} people. Use the user's diet preference, spice preference, home cooking style, and family size when helpful. Scale ingredient quantities to that serving size. Prefer practical home-cooking quantities and ingredients commonly used in Indian family kitchens. When home cooking style is provided, lean ingredient choices toward that cooking style when it fits the dish. Prefer naming ingredients close to the provided inventory items when possible, especially from the selected sections. Do not limit the recipe to only those items if the dish clearly needs additional ingredients. Include realistic approximate quantities with cooking units. When an ingredient clearly matches an inventory item but the inventory likely uses a different unit system, also include an inventory-friendly equivalent quantity and unit. Example: onion can be 2 pcs for cooking and 0.22 kg for inventory, oil can be 2 tbsp and 30 ml for inventory. Keep those inventory equivalents practical, approximate, and only include them when helpful. Mark must-have ingredients as essential and optional/common garnishes as recommended. Output a single-line JSON object only.`;
   try {
     const parsed = await callOpenRouterJSON<{
       dish?: unknown;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type {
   DietPreference,
+  HomeCookingStyle,
   SpicePreference,
   UserProfilePreferences,
   UserProfileSetupStatus,
@@ -34,6 +35,19 @@ const SPICE_OPTIONS: { value: SpicePreference; label: string }[] = [
   { value: 'spicy', label: 'Spicy' },
 ];
 
+const HOME_COOKING_STYLE_OPTIONS: { value: HomeCookingStyle; label: string }[] = [
+  { value: 'mixed-indian', label: 'Mixed Indian' },
+  { value: 'maharashtrian', label: 'Maharashtrian' },
+  { value: 'gujarati', label: 'Gujarati' },
+  { value: 'punjabi', label: 'Punjabi' },
+  { value: 'south-indian', label: 'South Indian' },
+  { value: 'north-indian', label: 'North Indian' },
+  { value: 'bengali', label: 'Bengali' },
+  { value: 'rajasthani', label: 'Rajasthani' },
+  { value: 'hyderabadi', label: 'Hyderabadi' },
+  { value: 'other', label: 'Other' },
+];
+
 const formatPreference = (value: string) =>
   value.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 
@@ -64,7 +78,7 @@ export function ProfilePanel({
     event.preventDefault();
     onSaveProfile({
       preferredName: draft.preferredName.trim(),
-      city: draft.city.trim(),
+      homeCookingStyle: draft.homeCookingStyle,
       dietPreference: draft.dietPreference,
       spicePreference: draft.spicePreference,
       familyMembers: Math.max(1, Math.round(draft.familyMembers || 1)),
@@ -90,8 +104,8 @@ export function ProfilePanel({
                 <p className={styles.summaryValue}>{profile.preferredName || userName || 'Not set'}</p>
               </div>
               <div>
-                <p className={styles.summaryLabel}>City</p>
-                <p className={styles.summaryValue}>{profile.city || 'Not set'}</p>
+                <p className={styles.summaryLabel}>Home cooking style</p>
+                <p className={styles.summaryValue}>{formatPreference(profile.homeCookingStyle)}</p>
               </div>
               <div>
                 <p className={styles.summaryLabel}>Diet</p>
@@ -136,14 +150,23 @@ export function ProfilePanel({
             </label>
 
             <label className={styles.field}>
-              <span className={styles.fieldLabel}>City</span>
-              <input
-                type="text"
-                value={draft.city}
-                onChange={(event) => setDraft((prev) => ({ ...prev, city: event.target.value }))}
-                placeholder="Optional"
-                className={styles.input}
-              />
+              <span className={styles.fieldLabel}>Food cooked at home</span>
+              <select
+                value={draft.homeCookingStyle}
+                onChange={(event) =>
+                  setDraft((prev) => ({
+                    ...prev,
+                    homeCookingStyle: event.target.value as HomeCookingStyle,
+                  }))
+                }
+                className={styles.select}
+              >
+                {HOME_COOKING_STYLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
 
             <label className={styles.field}>

@@ -1,5 +1,6 @@
 import type {
   FoodItem,
+  HomeCookingStyle,
   SpinHistoryEntry,
   GroceryItem,
   GroceryStatus,
@@ -41,12 +42,24 @@ const userProfileStatusKey = (userId: string) => `${STORAGE_KEYS.USER_PROFILE_ST
 
 export const DEFAULT_USER_PROFILE: UserProfilePreferences = {
   preferredName: '',
-  city: '',
+  homeCookingStyle: 'mixed-indian',
   dietPreference: 'no-preference',
   spicePreference: 'medium',
   familyMembers: 2,
   whatsappNumber: '',
 };
+
+const isKnownHomeCookingStyle = (value: unknown): value is HomeCookingStyle =>
+  value === 'mixed-indian' ||
+  value === 'maharashtrian' ||
+  value === 'gujarati' ||
+  value === 'punjabi' ||
+  value === 'south-indian' ||
+  value === 'north-indian' ||
+  value === 'bengali' ||
+  value === 'rajasthani' ||
+  value === 'hyderabadi' ||
+  value === 'other';
 
 export function loadOnboardingChoice(userId: string): OnboardingChoice | null {
   try {
@@ -154,7 +167,9 @@ export function loadUserProfile(userId: string): UserProfilePreferences {
     return {
       preferredName:
         typeof parsed.preferredName === 'string' ? parsed.preferredName : DEFAULT_USER_PROFILE.preferredName,
-      city: typeof parsed.city === 'string' ? parsed.city : DEFAULT_USER_PROFILE.city,
+      homeCookingStyle: isKnownHomeCookingStyle(parsed.homeCookingStyle)
+        ? parsed.homeCookingStyle
+        : DEFAULT_USER_PROFILE.homeCookingStyle,
       dietPreference:
         parsed.dietPreference === 'vegetarian' ||
         parsed.dietPreference === 'eggetarian' ||

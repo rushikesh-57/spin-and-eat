@@ -16,7 +16,7 @@ type GroceryInput = {
 
 type UserProfileInput = {
   preferredName?: string;
-  city?: string;
+  homeCookingStyle?: string;
   dietPreference?: string;
   spicePreference?: string;
   familyMembers?: number;
@@ -47,7 +47,9 @@ const buildProfileContext = (profile?: UserProfileInput) => {
 
   const details = [
     profile.preferredName?.trim() ? `Preferred name: ${profile.preferredName.trim()}` : null,
-    profile.city?.trim() ? `City: ${profile.city.trim()}` : null,
+    profile.homeCookingStyle?.trim()
+      ? `Home cooking style: ${profile.homeCookingStyle.trim()}`
+      : null,
     profile.dietPreference?.trim() ? `Diet: ${profile.dietPreference.trim()}` : null,
     profile.spicePreference?.trim() ? `Spice preference: ${profile.spicePreference.trim()}` : null,
     typeof profile.familyMembers === 'number' && Number.isFinite(profile.familyMembers)
@@ -139,7 +141,7 @@ Deno.serve(async (req) => {
           .map((item) => `- ${item}`)
           .join('\n')}\n`
       : '\n';
-  const prompt = `${profileContext}${sectionContext}Available groceries by section:\n${groceryList}${excludedList}\nReturn up to ${maxSuggestions} cook-at-home dish names that can be made mainly from the available items in the listed sections. Prioritize dishes strongly supported by the selected sections instead of generic pantry-based ideas. Use the user's diet preference, spice preference, city/context, and family size when they are provided. Only return new dish names that are not in the excluded list. Output a single-line JSON object only (no extra whitespace).`;
+  const prompt = `${profileContext}${sectionContext}Available groceries by section:\n${groceryList}${excludedList}\nReturn up to ${maxSuggestions} cook-at-home dish names that can be made mainly from the available items in the listed sections. Suggest meals that feel like regular Indian household family cooking, not restaurant-style or party dishes, unless the groceries strongly point to that. Prefer practical breakfast, lunch, dinner, and simple sabzi-dal-rice-roti style ideas that families cook often at home. When home cooking style is provided, bias suggestions clearly toward that cuisine style such as Maharashtrian, Gujarati, Punjabi, South Indian, or similar. Prioritize dishes strongly supported by the selected sections instead of generic pantry-based ideas. Use the user's diet preference, spice preference, home cooking style, and family size when they are provided. Only return new dish names that are not in the excluded list. Output a single-line JSON object only (no extra whitespace).`;
   try {
     const parsed = await callOpenRouterJSON<{ suggestions?: unknown }>({
       schemaName: 'meal_suggestions',

@@ -28,14 +28,13 @@ const mapRowToItem = (row: GroceryRow): GroceryItem => ({
   categoryId: getCategoryId(row.name, row.category_id),
 });
 
-const applyStatusToRemaining = (
-  status: GroceryItem['status'],
+const clampRemainingQuantity = (
   orderedQuantity: number,
   currentRemaining: number
 ) => {
-  if (status === 'low') return Number((orderedQuantity * 0.2).toFixed(2));
-  if (status === 'out') return 0;
-  return currentRemaining;
+  if (!Number.isFinite(currentRemaining) || currentRemaining <= 0) return 0;
+  if (!Number.isFinite(orderedQuantity) || orderedQuantity <= 0) return 0;
+  return Math.min(currentRemaining, orderedQuantity);
 };
 
 export function useGroceryInventory(userId: string | null) {
@@ -183,17 +182,14 @@ export function useGroceryInventory(userId: string | null) {
       if (!trimmedName) return;
 
       setError(null);
+      const nextRemaining = clampRemainingQuantity(item.orderedQuantity, item.remainingQuantity);
       const { data, error: insertError } = await supabase
         .from('groceries')
         .insert({
           user_id: userId,
           name: trimmedName,
           ordered_quantity: item.orderedQuantity,
-          remaining_quantity: applyStatusToRemaining(
-            item.status,
-            item.orderedQuantity,
-            item.remainingQuantity
-          ),
+          remaining_quantity: nextRemaining,
           unit: item.unit,
           status: item.status,
           frequency: item.frequency,
@@ -231,14 +227,12 @@ export function useGroceryInventory(userId: string | null) {
               typeof updates.remainingQuantity === 'number'
                 ? updates.remainingQuantity
                 : item.remainingQuantity;
-            const resolvedRemaining =
-              typeof updates.remainingQuantity === 'number'
-                ? updates.remainingQuantity
-                : applyStatusToRemaining(nextStatus, nextOrdered, nextRemaining);
+            const resolvedRemaining = clampRemainingQuantity(nextOrdered, nextRemaining);
             return {
               ...item,
               ...updates,
               remainingQuantity: resolvedRemaining,
+              status: nextStatus,
             };
           })
         );
@@ -272,14 +266,16 @@ export function useGroceryInventory(userId: string | null) {
           : items.find((item) => item.id === id)?.remainingQuantity ?? 0;
       const statusForAuto =
         updates.status ?? items.find((item) => item.id === id)?.status ?? 'available';
-
-      if (payload.status && typeof updates.remainingQuantity !== 'number') {
-        payload.remaining_quantity = applyStatusToRemaining(
-          statusForAuto,
-          orderedForAuto,
-          remainingForAuto
-        );
-      }
+      const clampedRemaining = clampRemainingQuantity(orderedForAuto, remainingForAuto);
+      payload.remaining_quantity = clampedRemaining;
+      payload.status =
+        clampedRemaining <= 0 || orderedForAuto <= 0
+          ? 'out'
+          : clampedRemaining <= orderedForAuto * 0.2
+            ? 'low'
+            : statusForAuto === 'out' || statusForAuto === 'low' || statusForAuto === 'available'
+              ? 'available'
+              : statusForAuto;
 
       setError(null);
       const { data, error: updateError } = await supabase

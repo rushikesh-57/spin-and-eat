@@ -16,10 +16,21 @@ export type DietPreference =
   | 'vegan';
 
 export type SpicePreference = 'mild' | 'medium' | 'spicy';
+export type HomeCookingStyle =
+  | 'mixed-indian'
+  | 'maharashtrian'
+  | 'gujarati'
+  | 'punjabi'
+  | 'south-indian'
+  | 'north-indian'
+  | 'bengali'
+  | 'rajasthani'
+  | 'hyderabadi'
+  | 'other';
 
 export interface UserProfilePreferences {
   preferredName: string;
-  city: string;
+  homeCookingStyle: HomeCookingStyle;
   dietPreference: DietPreference;
   spicePreference: SpicePreference;
   familyMembers: number;

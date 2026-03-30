@@ -21,7 +21,19 @@ type UserProfileRow = {
 
 const mapRowToProfile = (row: UserProfileRow): UserProfilePreferences => ({
   preferredName: row.preferred_name ?? DEFAULT_USER_PROFILE.preferredName,
-  city: row.city ?? DEFAULT_USER_PROFILE.city,
+  homeCookingStyle:
+    row.city === 'mixed-indian' ||
+    row.city === 'maharashtrian' ||
+    row.city === 'gujarati' ||
+    row.city === 'punjabi' ||
+    row.city === 'south-indian' ||
+    row.city === 'north-indian' ||
+    row.city === 'bengali' ||
+    row.city === 'rajasthani' ||
+    row.city === 'hyderabadi' ||
+    row.city === 'other'
+      ? row.city
+      : DEFAULT_USER_PROFILE.homeCookingStyle,
   dietPreference: row.diet_preference ?? DEFAULT_USER_PROFILE.dietPreference,
   spicePreference: row.spice_preference ?? DEFAULT_USER_PROFILE.spicePreference,
   familyMembers:
@@ -86,7 +98,7 @@ export async function saveUserProfileToSupabase(
   const payload = {
     user_id: userId,
     preferred_name: profile.preferredName.trim(),
-    city: profile.city.trim(),
+    city: profile.homeCookingStyle,
     diet_preference: profile.dietPreference,
     spice_preference: profile.spicePreference,
     family_members: Math.max(1, Math.round(profile.familyMembers || 1)),
