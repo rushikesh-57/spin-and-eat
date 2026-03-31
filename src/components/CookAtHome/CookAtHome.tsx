@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   DishIngredientAnalysis,
   DishIngredientRequirement,
@@ -25,6 +25,7 @@ type Props = {
   onUpdateGrocery: (id: string, updates: Partial<Omit<GroceryItem, 'id'>>) => Promise<void> | void;
   defaultServings: number;
   userProfile: UserProfilePreferences;
+  guideTarget?: 'ideas' | 'wheel' | null;
 };
 
 type RequirementPreview = {
@@ -246,6 +247,7 @@ export function CookAtHome({
   onUpdateGrocery,
   defaultServings,
   userProfile,
+  guideTarget = null,
 }: Props) {
   const [mealSuggestions, setMealSuggestions] = useState<MealSuggestion[]>([]);
   const [isGeneratingMeals, setIsGeneratingMeals] = useState(false);
@@ -276,6 +278,8 @@ export function CookAtHome({
   );
   const [showMobileResult, setShowMobileResult] = useState(false);
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(wheelItems);
+  const ideasCardRef = useRef<HTMLElement | null>(null);
+  const wheelCardRef = useRef<HTMLElement | null>(null);
 
   const availableGroceries = useMemo(
     () => groceries.filter((item) => item.status !== 'out' && item.remainingQuantity > 0),
@@ -400,6 +404,33 @@ export function CookAtHome({
       setShowMobileResult(true);
     }
   }, [isMobileLayout, isSpinning, selectedItem]);
+
+  useEffect(() => {
+    if (!guideTarget) {
+      return;
+    }
+    setOpenSections((prev) => ({
+      ...prev,
+      ideas: guideTarget === 'ideas' ? true : prev.ideas,
+      wheel: guideTarget === 'wheel' ? true : prev.wheel,
+    }));
+  }, [guideTarget]);
+
+  useEffect(() => {
+    if (!guideTarget) {
+      return;
+    }
+
+    const targetRef = guideTarget === 'ideas' ? ideasCardRef : wheelCardRef;
+    const timeoutId = window.setTimeout(() => {
+      targetRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [guideTarget]);
 
   const handleGenerateMeals = async () => {
     if (availableGroceries.length === 0) {
@@ -705,7 +736,10 @@ export function CookAtHome({
 
   return (
     <section className={styles.section} aria-label="Cook at home suggestions">
-      <section className={styles.panelCard}>
+      <section
+        ref={ideasCardRef}
+        className={`${styles.panelCard} ${guideTarget === 'ideas' ? styles.guideSpotlight : ''}`}
+      >
         <button
           type="button"
           className={styles.panelToggle}
@@ -862,7 +896,10 @@ export function CookAtHome({
         ) : null}
       </section>
 
-      <section className={styles.panelCard}>
+      <section
+        ref={wheelCardRef}
+        className={`${styles.panelCard} ${guideTarget === 'wheel' ? styles.guideSpotlight : ''}`}
+      >
         <button
           type="button"
           className={styles.panelToggle}
@@ -1197,4 +1234,5 @@ export function CookAtHome({
     </section>
   );
 }
+
 

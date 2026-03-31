@@ -106,6 +106,96 @@
   background: transparent;
 }
 
+.userGuideOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.userGuideCard {
+  width: min(100%, 420px);
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: auto;
+}
+
+.userGuideStep {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+}
+
+.userGuideTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--color-text);
+}
+
+.userGuideTarget {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-accent-strong);
+  font-weight: 700;
+}
+
+.userGuideText {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.userGuideActions {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
+.userGuidePrimary,
+.userGuideSecondary {
+  border-radius: 999px;
+  padding: 0.62rem 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.userGuidePrimary {
+  border: none;
+  color: #fff;
+  background: var(--color-accent);
+}
+
+.userGuideSecondary {
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  background: transparent;
+}
+
+.guideSpotlight {
+  position: relative;
+  z-index: 30;
+  outline: 3px solid rgba(249, 115, 22, 0.9);
+  outline-offset: 4px;
+  border-radius: 20px;
+  box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.16);
+}
+
 .spinPanel {
   grid-area: wheel;
   background: var(--color-surface);
@@ -411,5 +501,14 @@
   .installSecondary {
     width: 100%;
     min-height: 3rem;
+  }
+
+  .userGuideOverlay {
+    padding: 0.85rem;
+    justify-content: center;
+  }
+
+  .userGuideCard {
+    width: min(100%, 520px);
   }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FoodWheel } from '../FoodWheel';
 import { SpinButton } from '../SpinButton';
 import { ResultDisplay } from '../ResultDisplay';
@@ -12,9 +12,10 @@ const MOBILE_LAYOUT_QUERY = '(max-width: 719px)';
 
 interface MakeYourOwnWheelProps {
   userId: string | null;
+  guideTarget?: 'wheel' | 'options' | null;
 }
 
-export function MakeYourOwnWheel({ userId }: MakeYourOwnWheelProps) {
+export function MakeYourOwnWheel({ userId, guideTarget = null }: MakeYourOwnWheelProps) {
   const [newOption, setNewOption] = useState('');
   const [isMobileLayout, setIsMobileLayout] = useState(() =>
     window.matchMedia(MOBILE_LAYOUT_QUERY).matches
@@ -23,6 +24,8 @@ export function MakeYourOwnWheel({ userId }: MakeYourOwnWheelProps) {
     !window.matchMedia(MOBILE_LAYOUT_QUERY).matches
   );
   const [showMobileResult, setShowMobileResult] = useState(false);
+  const wheelCardRef = useRef<HTMLElement | null>(null);
+  const optionsCardRef = useRef<HTMLElement | null>(null);
   const customWheel = useCustomWheelItems(userId);
   const { confirm } = useAlertDialog();
 
@@ -60,6 +63,28 @@ export function MakeYourOwnWheel({ userId }: MakeYourOwnWheelProps) {
     }
   }, [isMobileLayout, isSpinning, selectedItem]);
 
+  useEffect(() => {
+    if (guideTarget === 'options') {
+      setShowControls(true);
+    }
+  }, [guideTarget]);
+
+  useEffect(() => {
+    if (!guideTarget) {
+      return;
+    }
+
+    const targetRef = guideTarget === 'wheel' ? wheelCardRef : optionsCardRef;
+    const timeoutId = window.setTimeout(() => {
+      targetRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [guideTarget]);
+
   const handleAddOption = useCallback(
     (event: React.FormEvent) => {
       event.preventDefault();
@@ -77,7 +102,11 @@ export function MakeYourOwnWheel({ userId }: MakeYourOwnWheelProps) {
 
   return (
     <div className={styles.layout}>
-      <section className={styles.spinPanel} aria-labelledby="custom-wheel-heading">
+      <section
+        ref={wheelCardRef}
+        className={`${styles.spinPanel} ${guideTarget === 'wheel' ? styles.guideSpotlight : ''}`}
+        aria-labelledby="custom-wheel-heading"
+      >
         <div className={styles.panelHeader}>
           <div>
             <h2 id="custom-wheel-heading" className={styles.panelTitle}>
@@ -114,7 +143,11 @@ export function MakeYourOwnWheel({ userId }: MakeYourOwnWheelProps) {
         />
       </section>
 
-      <section className={styles.controlsPanel} aria-label="Custom wheel options">
+      <section
+        ref={optionsCardRef}
+        className={`${styles.controlsPanel} ${guideTarget === 'options' ? styles.guideSpotlight : ''}`}
+        aria-label="Custom wheel options"
+      >
         <button
           type="button"
           className={styles.controlsToggle}

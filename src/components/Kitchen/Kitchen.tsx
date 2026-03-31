@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { GroceryFrequency, GroceryItem, GroceryStatus, UserProfilePreferences } from '../../types';
 import { CATEGORY_SECTIONS, getCategoryId } from '../../utils/groceryCategories';
 import { useAlertDialog } from '../layout/AlertDialogProvider';
@@ -7,11 +7,12 @@ import styles from './Kitchen.module.css';
 type Props = {
   groceries: GroceryItem[];
   userProfile: UserProfilePreferences;
-  onAddGrocery: (item: Omit<GroceryItem, 'id'>) => void;
-  onUpdateGrocery: (id: string, updates: Partial<Omit<GroceryItem, 'id'>>) => void;
-  onRemoveGrocery: (id: string) => void;
-  onClearGroceries: () => void;
-  onResetGrocery: () => void;
+  onAddGrocery: (item: Omit<GroceryItem, 'id'>) => Promise<void> | void;
+  onUpdateGrocery: (id: string, updates: Partial<Omit<GroceryItem, 'id'>>) => Promise<void> | void;
+  onRemoveGrocery: (id: string) => Promise<void> | void;
+  onClearGroceries: () => Promise<void> | void;
+  onResetGrocery: () => Promise<void> | void;
+  guideTarget?: 'shopping' | 'manage' | 'inventory' | null;
 };
 
 const defaultNewItem = {
@@ -97,6 +98,7 @@ export function Kitchen({
   onRemoveGrocery,
   onClearGroceries,
   onResetGrocery,
+  guideTarget = null,
 }: Props) {
   const { confirm, notify } = useAlertDialog();
   const [newItem, setNewItem] = useState(defaultNewItem);
@@ -115,6 +117,14 @@ export function Kitchen({
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(CATEGORY_SECTIONS.map((category) => [category.id, false]))
   );
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isResettingGroceries, setIsResettingGroceries] = useState(false);
+  const [isClearingGroceries, setIsClearingGroceries] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
+  const shoppingCardRef = useRef<HTMLElement | null>(null);
+  const manageCardRef = useRef<HTMLElement | null>(null);
+  const inventoryCardRef = useRef<HTMLElement | null>(null);
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredGroceries = groceries.filter((item) => {
@@ -207,7 +217,7 @@ export function Kitchen({
   };
 
   const handleSaveEdit = async () => {
-    if (!editingId) return;
+    if (!editingId || isSavingEdit) return;
     if (!editDraft.name.trim()) return;
     const parsedRemaining = Number(editRemainingInput);
     if (Number.isNaN(parsedRemaining) || parsedRemaining < 0) return;
@@ -230,15 +240,55 @@ export function Kitchen({
       editDraft.orderedQuantity,
       clampedRemaining
     );
-    onUpdateGrocery(editingId, {
-      remainingQuantity: clampedRemaining,
-      status: nextStatus,
-    });
-    setEditingId(null);
+    setIsSavingEdit(true);
+    try {
+      await onUpdateGrocery(editingId, {
+        remainingQuantity: clampedRemaining,
+        status: nextStatus,
+      });
+      setEditingId(null);
+    } finally {
+      setIsSavingEdit(false);
+    }
   };
 
-  const handleAddItem = () => {
-    if (!newItem.name.trim()) return;
+  useEffect(() => {
+    if (!guideTarget) {
+      return;
+    }
+
+    setOpenSections((prev) => ({
+      ...prev,
+      shopping: guideTarget === 'shopping' ? true : prev.shopping,
+      manage: guideTarget === 'manage' ? true : prev.manage,
+      inventory: guideTarget === 'inventory' ? true : prev.inventory,
+    }));
+  }, [guideTarget]);
+
+  useEffect(() => {
+    if (!guideTarget) {
+      return;
+    }
+
+    const targetRef =
+      guideTarget === 'shopping'
+        ? shoppingCardRef
+        : guideTarget === 'manage'
+          ? manageCardRef
+          : inventoryCardRef;
+
+    const timeoutId = window.setTimeout(() => {
+      targetRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [guideTarget]);
+
+  const handleAddItem = async () => {
+    if (!newItem.name.trim() || isAddingItem) return;
     const clampedRemaining = clampRemainingQuantity(
       newItem.orderedQuantity,
       newItem.remainingQuantity
@@ -247,16 +297,21 @@ export function Kitchen({
       newItem.orderedQuantity,
       clampedRemaining
     );
-    onAddGrocery({
-      name: newItem.name.trim(),
-      orderedQuantity: newItem.orderedQuantity,
-      remainingQuantity: clampedRemaining,
-      unit: newItem.unit.trim(),
-      status: nextStatus,
-      frequency: newItem.frequency,
-      categoryId: newItem.categoryId,
-    });
-    setNewItem(defaultNewItem);
+    setIsAddingItem(true);
+    try {
+      await onAddGrocery({
+        name: newItem.name.trim(),
+        orderedQuantity: newItem.orderedQuantity,
+        remainingQuantity: clampedRemaining,
+        unit: newItem.unit.trim(),
+        status: nextStatus,
+        frequency: newItem.frequency,
+        categoryId: newItem.categoryId,
+      });
+      setNewItem(defaultNewItem);
+    } finally {
+      setIsAddingItem(false);
+    }
   };
 
   const closeActionPanel = () => {
@@ -264,6 +319,9 @@ export function Kitchen({
   };
 
   const handleResetGroceries = async () => {
+    if (isResettingGroceries) {
+      return;
+    }
     const confirmed = await confirm({
       title: 'Reset grocery defaults?',
       message: 'This will replace your current grocery inventory with the default starter list.',
@@ -272,12 +330,20 @@ export function Kitchen({
     });
 
     if (confirmed) {
-      onResetGrocery();
-      closeActionPanel();
+      setIsResettingGroceries(true);
+      try {
+        await onResetGrocery();
+        closeActionPanel();
+      } finally {
+        setIsResettingGroceries(false);
+      }
     }
   };
 
   const handleClearGroceries = async () => {
+    if (isClearingGroceries) {
+      return;
+    }
     const confirmed = await confirm({
       title: 'Remove all groceries?',
       message: 'This will delete every grocery item from your inventory.',
@@ -286,15 +352,23 @@ export function Kitchen({
     });
 
     if (confirmed) {
-      onClearGroceries();
-      closeActionPanel();
+      setIsClearingGroceries(true);
+      try {
+        await onClearGroceries();
+        closeActionPanel();
+      } finally {
+        setIsClearingGroceries(false);
+      }
     }
   };
 
   return (
     <div className={styles.kitchen}>
       <section className={styles.section}>
-        <section className={styles.panelCard}>
+        <section
+          ref={shoppingCardRef}
+          className={`${styles.panelCard} ${guideTarget === 'shopping' ? styles.guideSpotlight : ''}`}
+        >
           <button
             type="button"
             className={styles.panelToggle}
@@ -390,7 +464,10 @@ export function Kitchen({
           ) : null}
         </section>
 
-        <section className={styles.panelCard}>
+        <section
+          ref={manageCardRef}
+          className={`${styles.panelCard} ${guideTarget === 'manage' ? styles.guideSpotlight : ''}`}
+        >
           <button
             type="button"
             className={styles.panelToggle}
@@ -415,15 +492,17 @@ export function Kitchen({
                   type="button"
                   className={`${styles.primaryButton} ${styles.actionButtonHighlight}`}
                   onClick={handleResetGroceries}
+                  disabled={isResettingGroceries || isClearingGroceries}
                 >
-                  Reset defaults
+                  {isResettingGroceries ? 'Resetting...' : 'Reset defaults'}
                 </button>
                 <button
                   type="button"
                   className={`${styles.primaryButton} ${styles.actionButtonHighlight}`}
                   onClick={handleClearGroceries}
+                  disabled={isResettingGroceries || isClearingGroceries}
                 >
-                  Remove all
+                  {isClearingGroceries ? 'Removing...' : 'Remove all'}
                 </button>
               </div>
 
@@ -530,16 +609,20 @@ export function Kitchen({
                 <button
                   type="button"
                   className={`${styles.primaryButton} ${styles.formSubmitButton}`}
-                  onClick={handleAddItem}
+                  onClick={() => void handleAddItem()}
+                  disabled={isAddingItem}
                 >
-                  Add
+                  {isAddingItem ? 'Adding...' : 'Add'}
                 </button>
               </div>
             </div>
           ) : null}
         </section>
 
-        <section className={styles.panelCard}>
+        <section
+          ref={inventoryCardRef}
+          className={`${styles.panelCard} ${guideTarget === 'inventory' ? styles.guideSpotlight : ''}`}
+        >
           <button
             type="button"
             className={styles.panelToggle}
@@ -654,13 +737,15 @@ export function Kitchen({
                                                 type="button"
                                                 className={styles.primaryButton}
                                                 onClick={handleSaveEdit}
+                                                disabled={isSavingEdit}
                                               >
-                                                Save
+                                                {isSavingEdit ? 'Saving...' : 'Save'}
                                               </button>
                                               <button
                                                 type="button"
                                                 className={styles.ghostButton}
                                                 onClick={() => setEditingId(null)}
+                                                disabled={isSavingEdit}
                                               >
                                                 Cancel
                                               </button>
@@ -702,9 +787,15 @@ export function Kitchen({
                                                 });
 
                                                 if (confirmed) {
-                                                  onRemoveGrocery(item.id);
+                                                  setDeletingItemId(item.id);
+                                                  try {
+                                                    await onRemoveGrocery(item.id);
+                                                  } finally {
+                                                    setDeletingItemId(null);
+                                                  }
                                                 }
                                               }}
+                                              disabled={deletingItemId === item.id}
                                               aria-label={`Delete ${item.name}`}
                                               title="Delete grocery"
                                             >

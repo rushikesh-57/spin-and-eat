@@ -2,11 +2,12 @@
 
 interface LoginScreenProps {
   authError: string | null;
+  isSubmitting: boolean;
   onLogin: () => void;
   onBack: () => void;
 }
 
-export function LoginScreen({ authError, onLogin, onBack }: LoginScreenProps) {
+export function LoginScreen({ authError, isSubmitting, onLogin, onBack }: LoginScreenProps) {
   return (
     <section className={styles.loginSection} aria-label="Login">
       <div className={styles.loginCard}>
@@ -18,7 +19,7 @@ export function LoginScreen({ authError, onLogin, onBack }: LoginScreenProps) {
           </p>
         </div>
         <div className={styles.loginActions}>
-          <button type="button" className={styles.loginButton} onClick={onLogin}>
+          <button type="button" className={styles.loginButton} onClick={onLogin} disabled={isSubmitting}>
             <span className={styles.googleIcon} aria-hidden="true">
               <svg viewBox="0 0 533.5 544.3" role="img" focusable="false">
                 <path
@@ -39,7 +40,7 @@ export function LoginScreen({ authError, onLogin, onBack }: LoginScreenProps) {
                 />
               </svg>
             </span>
-            <span>Continue with Google</span>
+            <span>{isSubmitting ? 'Signing in...' : 'Continue with Google'}</span>
           </button>
           <p className={styles.loginNote}>
             {authError ? `Sign-in failed: ${authError}` : 'You will be redirected to Google.'}

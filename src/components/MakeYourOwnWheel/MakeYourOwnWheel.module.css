@@ -31,6 +31,12 @@
   gap: 0.75rem;
 }
 
+.guideSpotlight {
+  outline: 3px solid rgba(249, 115, 22, 0.9);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.16);
+}
+
 .panelHeader {
   display: flex;
   align-items: center;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useFoodItems } from './hooks/useFoodItems';
 import { useSpinHistory } from './hooks/useSpinHistory';
 import { useWheelSpin } from './hooks/useWheelSpin';
@@ -34,9 +34,23 @@ import styles from './App.module.css';
 import type { UserProfilePreferences, UserProfileSetupStatus } from './types';
 
 const THEME_STORAGE_KEY = 'spin-eat-theme';
+const USER_GUIDE_SEEN_KEY_PREFIX = 'spin-eat-user-guide-seen';
 const MOBILE_LAYOUT_QUERY = '(max-width: 719px)';
 
 function App() {
+  type GuideTab = 'spin' | 'kitchen' | 'cook' | 'custom';
+  type GuideTarget =
+    | 'spin-wheel'
+    | 'spin-options'
+    | 'spin-history'
+    | 'kitchen-shopping'
+    | 'kitchen-manage'
+    | 'kitchen-inventory'
+    | 'cook-ideas'
+    | 'cook-wheel'
+    | 'custom-wheel'
+    | 'custom-options';
+
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'spin' | 'kitchen' | 'cook' | 'custom' | 'profile'>('spin');
@@ -55,6 +69,14 @@ function App() {
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [shouldPromptProfileSetup, setShouldPromptProfileSetup] = useState(false);
   const [showSignInPrompt, setShowSignInPrompt] = useState(false);
+  const [isAuthBusy, setIsAuthBusy] = useState(false);
+  const [isInstallBannerBusy, setIsInstallBannerBusy] = useState(false);
+  const [isApplyingDefaultLists, setIsApplyingDefaultLists] = useState(false);
+  const [showUserGuide, setShowUserGuide] = useState(false);
+  const [guideStepIndex, setGuideStepIndex] = useState(0);
+  const spinWheelRef = useRef<HTMLElement | null>(null);
+  const spinOptionsRef = useRef<HTMLElement | null>(null);
+  const spinHistoryRef = useRef<HTMLElement | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
@@ -68,6 +90,123 @@ function App() {
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(food.filteredItems);
   const { canInstall, isInstalled, promptInstall } = usePwaInstall();
   const isLoggedIn = Boolean(userName);
+
+  const guideSteps: {
+    title: string;
+    description: string;
+    targetLabel: string;
+    tab: GuideTab;
+    target: GuideTarget;
+  }[] = [
+    {
+      title: 'Spin: Wheel',
+      description:
+        'This is the main wheel card where you spin and see the selected result.',
+      targetLabel: 'Spin wheel card',
+      tab: 'spin',
+      target: 'spin-wheel',
+    },
+    {
+      title: 'Spin: Wheel Options',
+      description:
+        'Choose which options are shown on the wheel and add new ones here.',
+      targetLabel: 'Wheel options card',
+      tab: 'spin',
+      target: 'spin-options',
+    },
+    {
+      title: 'Spin: Recent History',
+      description:
+        'Check your recent spin results and clear them when needed.',
+      targetLabel: 'Recent spins card',
+      tab: 'spin',
+      target: 'spin-history',
+    },
+    {
+      title: 'Grocery: Shopping Lists',
+      description:
+        'Generate weekly or monthly list suggestions based on low/out-of-stock items.',
+      targetLabel: 'Shopping lists card',
+      tab: 'kitchen',
+      target: 'kitchen-shopping',
+    },
+    {
+      title: 'Grocery: Manage Inventory',
+      description:
+        'Add new grocery items, reset defaults, or clear all inventory items.',
+      targetLabel: 'Manage inventory card',
+      tab: 'kitchen',
+      target: 'kitchen-manage',
+    },
+    {
+      title: 'Grocery: Current Inventory',
+      description:
+        'Search, filter, edit remaining quantity, and delete specific grocery items.',
+      targetLabel: 'Current inventory card',
+      tab: 'kitchen',
+      target: 'kitchen-inventory',
+    },
+    {
+      title: 'Cook: Idea Generator',
+      description:
+        'Generate cooking ideas from available groceries, then review ingredients and AI-assisted grocery updates.',
+      targetLabel: 'Cook ideas card',
+      tab: 'cook',
+      target: 'cook-ideas',
+    },
+    {
+      title: 'Cook: Decision Wheel',
+      description:
+        'If you cannot decide between suggestions, spin this wheel to pick one quickly.',
+      targetLabel: 'Cook wheel card',
+      tab: 'cook',
+      target: 'cook-wheel',
+    },
+    {
+      title: 'Custom Wheel: Wheel',
+      description:
+        'Spin your own personalized wheel once you have added custom options.',
+      targetLabel: 'Custom wheel card',
+      tab: 'custom',
+      target: 'custom-wheel',
+    },
+    {
+      title: 'Custom Wheel: Options',
+      description:
+        'Add, include/exclude, and clear custom options from your personal wheel.',
+      targetLabel: 'Custom options card',
+      tab: 'custom',
+      target: 'custom-options',
+    },
+  ];
+  const isLastGuideStep = guideStepIndex === guideSteps.length - 1;
+  const activeGuideTarget = showUserGuide ? guideSteps[guideStepIndex]?.target : null;
+
+  const getUserGuideSeenKey = useCallback((currentUserId: string) => {
+    return `${USER_GUIDE_SEEN_KEY_PREFIX}:${currentUserId}`;
+  }, []);
+
+  const hasSeenUserGuide = useCallback(
+    (currentUserId: string) => {
+      try {
+        return localStorage.getItem(getUserGuideSeenKey(currentUserId)) === '1';
+      } catch {
+        return false;
+      }
+    },
+    [getUserGuideSeenKey]
+  );
+
+  const markUserGuideSeen = useCallback(
+    (currentUserId: string) => {
+      try {
+        localStorage.setItem(getUserGuideSeenKey(currentUserId), '1');
+      } catch {
+        // Ignore storage errors.
+      }
+    },
+    [getUserGuideSeenKey]
+  );
 
   const handleSpin = useCallback(() => {
     spin((item) => {
@@ -218,6 +357,58 @@ function App() {
   }, [activeTab, isLoggedIn]);
 
   useEffect(() => {
+    if (!isLoggedIn || !userId) {
+      setShowUserGuide(false);
+      return;
+    }
+
+    const seen = hasSeenUserGuide(userId);
+    if (!seen) {
+      setGuideStepIndex(0);
+      setActiveTab('spin');
+      setShowUserGuide(true);
+    }
+  }, [hasSeenUserGuide, isLoggedIn, userId]);
+
+  useEffect(() => {
+    if (!showUserGuide) {
+      return;
+    }
+    const step = guideSteps[guideStepIndex];
+    if (step && activeTab !== step.tab) {
+      setActiveTab(step.tab);
+    }
+  }, [activeTab, guideStepIndex, guideSteps, showUserGuide]);
+
+  useEffect(() => {
+    if (!showUserGuide || activeTab !== 'spin') {
+      return;
+    }
+
+    const targetRef =
+      activeGuideTarget === 'spin-wheel'
+        ? spinWheelRef
+        : activeGuideTarget === 'spin-options'
+          ? spinOptionsRef
+          : activeGuideTarget === 'spin-history'
+            ? spinHistoryRef
+            : null;
+
+    if (!targetRef?.current) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      targetRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }, 120);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeGuideTarget, activeTab, showUserGuide]);
+
+  useEffect(() => {
     if (food.activeSource !== 'outside') {
       food.setActiveSource('outside');
     }
@@ -239,26 +430,42 @@ function App() {
   }, []);
 
   const handleLogin = useCallback(async () => {
-    setAuthError(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-
-    if (error) {
-      setAuthError(error.message);
+    if (isAuthBusy) {
+      return;
     }
-  }, []);
+    setIsAuthBusy(true);
+    setAuthError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+
+      if (error) {
+        setAuthError(error.message);
+      }
+    } finally {
+      setIsAuthBusy(false);
+    }
+  }, [isAuthBusy]);
 
   const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut();
-    setActiveTab('spin');
-    setUserProfile(DEFAULT_USER_PROFILE);
-    setProfileStatus(null);
-    setUserEmail(null);
-  }, []);
+    if (isAuthBusy) {
+      return;
+    }
+    setIsAuthBusy(true);
+    try {
+      await supabase.auth.signOut();
+      setActiveTab('spin');
+      setUserProfile(DEFAULT_USER_PROFILE);
+      setProfileStatus(null);
+      setUserEmail(null);
+    } finally {
+      setIsAuthBusy(false);
+    }
+  }, [isAuthBusy]);
 
   const handleSaveProfile = useCallback(
     async (profile: UserProfilePreferences) => {
@@ -273,13 +480,13 @@ function App() {
     [userId]
   );
 
-  const handleSkipProfile = useCallback(() => {
+  const handleSkipProfile = useCallback(async () => {
     if (!userId) {
       return;
     }
 
     setProfileStatus('skipped');
-    void saveUserProfileStatusToSupabase(userId, 'skipped');
+    await saveUserProfileStatusToSupabase(userId, 'skipped');
   }, [userId]);
 
   const showAuthPage = !isLoggedIn && (showLogin || activeTab !== 'spin');
@@ -337,17 +544,34 @@ function App() {
 
   const handleUseDefaultLists = useCallback(async () => {
     if (!userId) return;
+    if (isApplyingDefaultLists) {
+      return;
+    }
+    setIsApplyingDefaultLists(true);
     saveOnboardingChoice(userId, 'default');
     setShowOnboarding(false);
-    await food.resetToSample();
-    await kitchen.resetToSample();
-  }, [userId, food.resetToSample, kitchen.resetToSample]);
+    try {
+      await food.resetToSample();
+      await kitchen.resetToSample();
+    } finally {
+      setIsApplyingDefaultLists(false);
+    }
+  }, [userId, isApplyingDefaultLists, food.resetToSample, kitchen.resetToSample]);
 
   const handleStartCustomLists = useCallback(() => {
     if (!userId) return;
     saveOnboardingChoice(userId, 'custom');
     setShowOnboarding(false);
   }, [userId]);
+
+  const handleCloseGuide = useCallback(() => {
+    if (userId) {
+      markUserGuideSeen(userId);
+    }
+    setShowUserGuide(false);
+    setGuideStepIndex(0);
+    setActiveTab('spin');
+  }, [markUserGuideSeen, userId]);
 
   return (
     <AlertDialogProvider>
@@ -365,6 +589,7 @@ function App() {
         canInstallApp={canInstall}
         isAppInstalled={isInstalled}
         onInstallApp={promptInstall}
+        isAuthBusy={isAuthBusy}
         theme={theme}
         onToggleTheme={handleToggleTheme}
       />
@@ -393,18 +618,28 @@ function App() {
                   type="button"
                   className={styles.installPrimary}
                   onClick={async () => {
-                    const installed = await promptInstall();
-                    if (installed) {
-                      setShowInstallBanner(false);
+                    if (isInstallBannerBusy) {
+                      return;
+                    }
+                    setIsInstallBannerBusy(true);
+                    try {
+                      const installed = await promptInstall();
+                      if (installed) {
+                        setShowInstallBanner(false);
+                      }
+                    } finally {
+                      setIsInstallBannerBusy(false);
                     }
                   }}
+                  disabled={isInstallBannerBusy}
                 >
-                  Install app
+                  {isInstallBannerBusy ? 'Installing...' : 'Install app'}
                 </button>
                 <button
                   type="button"
                   className={styles.installSecondary}
                   onClick={() => setShowInstallBanner(false)}
+                  disabled={isInstallBannerBusy}
                 >
                   Not now
                 </button>
@@ -415,6 +650,7 @@ function App() {
           {showAuthPage ? (
           <LoginScreen
             authError={authError}
+            isSubmitting={isAuthBusy}
             onLogin={handleLogin}
             onBack={() => {
               setShowLogin(false);
@@ -436,13 +672,15 @@ function App() {
                     type="button"
                     className={styles.onboardingPrimary}
                     onClick={handleUseDefaultLists}
+                    disabled={isApplyingDefaultLists}
                   >
-                    Use default list
+                    {isApplyingDefaultLists ? 'Applying...' : 'Use default list'}
                   </button>
                   <button
                     type="button"
                     className={styles.onboardingSecondary}
                     onClick={handleStartCustomLists}
+                    disabled={isApplyingDefaultLists}
                   >
                     Create my own
                   </button>
@@ -484,7 +722,10 @@ function App() {
                 ) : null}
                 <div className={styles.spinLayout}>
                 <section
-                  className={styles.spinPanel}
+                  ref={spinWheelRef}
+                  className={`${styles.spinPanel} ${
+                    activeGuideTarget === 'spin-wheel' ? styles.guideSpotlight : ''
+                  }`}
                   aria-labelledby="wheel-heading"
                   aria-label="Food wheel"
                 >
@@ -519,7 +760,13 @@ function App() {
                   />
                 </section>
 
-                <section className={styles.controlsPanel} aria-label="Wheel options">
+                <section
+                  ref={spinOptionsRef}
+                  className={`${styles.controlsPanel} ${
+                    activeGuideTarget === 'spin-options' ? styles.guideSpotlight : ''
+                  }`}
+                  aria-label="Wheel options"
+                >
                   <button
                     type="button"
                     className={styles.controlsToggle}
@@ -551,7 +798,13 @@ function App() {
                   </div>
                 </section>
 
-                <section className={styles.historyPanel} aria-label="Recent spins">
+                <section
+                  ref={spinHistoryRef}
+                  className={`${styles.historyPanel} ${
+                    activeGuideTarget === 'spin-history' ? styles.guideSpotlight : ''
+                  }`}
+                  aria-label="Recent spins"
+                >
                   <SpinHistory history={history.history} onClear={history.clearHistory} />
                 </section>
                 </div>
@@ -566,6 +819,15 @@ function App() {
                   onRemoveGrocery={kitchen.removeItem}
                   onClearGroceries={kitchen.clearAll}
                   onResetGrocery={kitchen.resetToSample}
+                  guideTarget={
+                    activeGuideTarget === 'kitchen-shopping'
+                      ? 'shopping'
+                      : activeGuideTarget === 'kitchen-manage'
+                        ? 'manage'
+                        : activeGuideTarget === 'kitchen-inventory'
+                          ? 'inventory'
+                          : null
+                  }
                 />
               </section>
             ) : activeTab === 'cook' ? (
@@ -575,11 +837,27 @@ function App() {
                   onUpdateGrocery={kitchen.updateItem}
                   defaultServings={userProfile.familyMembers}
                   userProfile={userProfile}
+                  guideTarget={
+                    activeGuideTarget === 'cook-ideas'
+                      ? 'ideas'
+                      : activeGuideTarget === 'cook-wheel'
+                        ? 'wheel'
+                        : null
+                  }
                 />
               </section>
             ) : activeTab === 'custom' ? (
               <section className={styles.cookPanel} aria-label="Make your own wheel">
-                <MakeYourOwnWheel userId={userId} />
+                <MakeYourOwnWheel
+                  userId={userId}
+                  guideTarget={
+                    activeGuideTarget === 'custom-wheel'
+                      ? 'wheel'
+                      : activeGuideTarget === 'custom-options'
+                        ? 'options'
+                        : null
+                  }
+                />
               </section>
             ) : (
               <ProfilePanel
@@ -621,6 +899,48 @@ function App() {
             handleSpin();
           }}
         />
+      ) : null}
+
+      {showUserGuide && isLoggedIn ? (
+        <section className={styles.userGuideOverlay} role="dialog" aria-modal="true" aria-label="First-time user guide">
+          <div className={styles.userGuideCard}>
+            <p className={styles.userGuideStep}>Step {guideStepIndex + 1} of {guideSteps.length}</p>
+            <h3 className={styles.userGuideTitle}>{guideSteps[guideStepIndex].title}</h3>
+            <p className={styles.userGuideTarget}>Look here: {guideSteps[guideStepIndex].targetLabel}</p>
+            <p className={styles.userGuideText}>{guideSteps[guideStepIndex].description}</p>
+            <div className={styles.userGuideActions}>
+              <button
+                type="button"
+                className={styles.userGuideSecondary}
+                onClick={handleCloseGuide}
+              >
+                Skip guide
+              </button>
+              {guideStepIndex > 0 ? (
+                <button
+                  type="button"
+                  className={styles.userGuideSecondary}
+                  onClick={() => setGuideStepIndex((prev) => Math.max(0, prev - 1))}
+                >
+                  Previous
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={styles.userGuidePrimary}
+                onClick={() => {
+                  if (isLastGuideStep) {
+                    handleCloseGuide();
+                    return;
+                  }
+                  setGuideStepIndex((prev) => Math.min(guideSteps.length - 1, prev + 1));
+                }}
+              >
+                {isLastGuideStep ? 'Finish' : 'Next'}
+              </button>
+            </div>
+          </div>
+        </section>
       ) : null}
       </div>
     </AlertDialogProvider>

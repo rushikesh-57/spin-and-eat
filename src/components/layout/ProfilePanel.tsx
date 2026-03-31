@@ -13,9 +13,9 @@ interface ProfilePanelProps {
   userEmail: string | null;
   profile: UserProfilePreferences;
   profileStatus: UserProfileSetupStatus | null;
-  onSaveProfile: (profile: UserProfilePreferences) => void;
-  onSkipProfile: () => void;
-  onLogout: () => void;
+  onSaveProfile: (profile: UserProfilePreferences) => Promise<void> | void;
+  onSkipProfile: () => Promise<void> | void;
+  onLogout: () => Promise<void> | void;
   onClose: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
@@ -65,6 +65,9 @@ export function ProfilePanel({
 }: ProfilePanelProps) {
   const [draft, setDraft] = useState(profile);
   const [isEditing, setIsEditing] = useState(profileStatus === null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     setDraft(profile);
@@ -74,17 +77,25 @@ export function ProfilePanel({
     setIsEditing(profileStatus === null);
   }, [profileStatus]);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    onSaveProfile({
-      preferredName: draft.preferredName.trim(),
-      homeCookingStyle: draft.homeCookingStyle,
-      dietPreference: draft.dietPreference,
-      spicePreference: draft.spicePreference,
-      familyMembers: Math.max(1, Math.round(draft.familyMembers || 1)),
-      whatsappNumber: draft.whatsappNumber.trim(),
-    });
-    setIsEditing(false);
+    if (isSaving || isSkipping) {
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSaveProfile({
+        preferredName: draft.preferredName.trim(),
+        homeCookingStyle: draft.homeCookingStyle,
+        dietPreference: draft.dietPreference,
+        spicePreference: draft.spicePreference,
+        familyMembers: Math.max(1, Math.round(draft.familyMembers || 1)),
+        whatsappNumber: draft.whatsappNumber.trim(),
+      });
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -243,18 +254,27 @@ export function ProfilePanel({
             </label>
 
             <div className={styles.formActions}>
-              <button type="submit" className={styles.primaryButton}>
-                Save profile
+              <button type="submit" className={styles.primaryButton} disabled={isSaving || isSkipping}>
+                {isSaving ? 'Saving...' : 'Save profile'}
               </button>
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() => {
-                  onSkipProfile();
-                  setIsEditing(false);
+                disabled={isSaving || isSkipping}
+                onClick={async () => {
+                  if (isSaving || isSkipping) {
+                    return;
+                  }
+                  setIsSkipping(true);
+                  try {
+                    await onSkipProfile();
+                    setIsEditing(false);
+                  } finally {
+                    setIsSkipping(false);
+                  }
                 }}
               >
-                Skip for now
+                {isSkipping ? 'Skipping...' : 'Skip for now'}
               </button>
             </div>
           </form>
@@ -285,8 +305,23 @@ export function ProfilePanel({
         </div>
 
         <div className={styles.profileActions}>
-          <button type="button" className={styles.logoutButton} onClick={onLogout}>
-            Log out
+          <button
+            type="button"
+            className={styles.logoutButton}
+            disabled={isLoggingOut}
+            onClick={async () => {
+              if (isLoggingOut) {
+                return;
+              }
+              setIsLoggingOut(true);
+              try {
+                await onLogout();
+              } finally {
+                setIsLoggingOut(false);
+              }
+            }}
+          >
+            {isLoggingOut ? 'Logging out...' : 'Log out'}
           </button>
           <button type="button" className={styles.closeButton} onClick={onClose}>
             Close

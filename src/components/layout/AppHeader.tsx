@@ -1,5 +1,6 @@
 import styles from './AppHeader.module.css';
 import { useAlertDialog } from './AlertDialogProvider';
+import { useState } from 'react';
 
 interface AppHeaderProps {
   isLoggedIn: boolean;
@@ -8,10 +9,11 @@ interface AppHeaderProps {
   onTabChange: (tab: 'spin' | 'kitchen' | 'cook' | 'custom' | 'profile') => void;
   onLoginClick: () => void;
   onProfileClick: () => void;
-  onLogout: () => void;
+  onLogout: () => Promise<void>;
   canInstallApp: boolean;
   isAppInstalled: boolean;
   onInstallApp: () => Promise<boolean>;
+  isAuthBusy: boolean;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
 }
@@ -34,30 +36,53 @@ export function AppHeader({
   canInstallApp,
   isAppInstalled,
   onInstallApp,
+  isAuthBusy,
   theme,
   onToggleTheme,
 }: AppHeaderProps) {
   const { notify } = useAlertDialog();
+  const [isInstallBusy, setIsInstallBusy] = useState(false);
+  const [isLogoutBusy, setIsLogoutBusy] = useState(false);
 
   const handleInstallClick = async () => {
-    if (isAppInstalled) {
+    if (isInstallBusy) {
+      return;
+    }
+    setIsInstallBusy(true);
+    try {
+      if (isAppInstalled) {
+        await notify({
+          title: 'App already installed',
+          message: 'Spin & Eat is already installed on this device.',
+        });
+        return;
+      }
+
+      if (canInstallApp) {
+        await onInstallApp();
+        return;
+      }
+
       await notify({
-        title: 'App already installed',
-        message: 'Spin & Eat is already installed on this device.',
+        title: 'Install Spin & Eat',
+        message:
+          'If the install prompt is not ready yet, refresh once after the app loads. If it still does not appear, use the browser menu or Share menu and choose Install app or Add to Home Screen.',
       });
+    } finally {
+      setIsInstallBusy(false);
+    }
+  };
+
+  const handleLogoutClick = async () => {
+    if (isLogoutBusy || isAuthBusy) {
       return;
     }
-
-    if (canInstallApp) {
-      await onInstallApp();
-      return;
+    setIsLogoutBusy(true);
+    try {
+      await onLogout();
+    } finally {
+      setIsLogoutBusy(false);
     }
-
-    await notify({
-      title: 'Install Spin & Eat',
-      message:
-        'If the install prompt is not ready yet, refresh once after the app loads. If it still does not appear, use the browser menu or Share menu and choose Install app or Add to Home Screen.',
-    });
   };
 
   return (
@@ -111,8 +136,9 @@ export function AppHeader({
             onClick={handleInstallClick}
             aria-label={isAppInstalled ? 'App installed' : 'Install app'}
             title={isAppInstalled ? 'Installed' : 'Install app'}
+            disabled={isInstallBusy}
           >
-            {isAppInstalled ? 'Installed' : 'Install app'}
+            {isInstallBusy ? 'Loading...' : isAppInstalled ? 'Installed' : 'Install app'}
           </button>
           {isLoggedIn ? (
             <>
@@ -122,13 +148,23 @@ export function AppHeader({
                 </span>
                 <span className={styles.avatarLabel}>Profile</span>
               </button>
-              <button type="button" className={styles.logoutButton} onClick={onLogout}>
-                Log out
+              <button
+                type="button"
+                className={styles.logoutButton}
+                onClick={handleLogoutClick}
+                disabled={isAuthBusy || isLogoutBusy}
+              >
+                {isAuthBusy || isLogoutBusy ? 'Logging out...' : 'Log out'}
               </button>
             </>
           ) : (
-            <button type="button" className={styles.loginButton} onClick={onLoginClick}>
-              Log in
+            <button
+              type="button"
+              className={styles.loginButton}
+              onClick={onLoginClick}
+              disabled={isAuthBusy}
+            >
+              {isAuthBusy ? 'Signing in...' : 'Log in'}
             </button>
           )}
           <button
