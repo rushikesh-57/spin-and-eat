@@ -38,9 +38,9 @@
   inset: 0;
   z-index: 20;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: clamp(1rem, 8vh, 4.5rem) 1rem 1rem;
+  padding: 1rem;
   background: rgba(15, 23, 42, 0.42);
   border-radius: 20px;
   backdrop-filter: blur(2px);
@@ -48,6 +48,7 @@
 
 .signInPromptCard {
   width: min(100%, 430px);
+  max-width: 100%;
   border-radius: 18px;
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-card);
