@@ -364,19 +364,21 @@ const normalizeStatus = (status: GroceryStatus | undefined, item: GroceryItem & 
 };
 
 const normalizeFrequency = (frequency: GroceryFrequency | undefined, name: string) => {
-  if (frequency === 'weekly' || frequency === 'monthly' || frequency === 'adhoc') return frequency;
+  if (frequency === 'daily' || frequency === 'weekly' || frequency === 'monthly') return frequency;
   const normalized = name.trim().toLowerCase();
-  const weeklyHints = [
+  const dailyHints = [
     'milk',
     'curd',
     'dahi',
-    'paneer',
-    'cheese',
-    'butter',
-    'cream',
     'buttermilk',
+    'paneer',
+    'butter',
+    'cheese',
     'egg',
     'eggs',
+    'chicken',
+  ];
+  const weeklyHints = [
     'tomato',
     'onion',
     'potato',
@@ -407,18 +409,7 @@ const normalizeFrequency = (frequency: GroceryFrequency | undefined, name: strin
     'fish',
     'prawn',
   ];
-  const adhocHints = [
-    'chips',
-    'namkeen',
-    'biscuit',
-    'cookies',
-    'chocolate',
-    'ready-to-eat',
-    'dry fruits',
-    'makhana',
-    'peanuts',
-  ];
+  if (dailyHints.some((hint) => normalized.includes(hint))) return 'daily';
   if (weeklyHints.some((hint) => normalized.includes(hint))) return 'weekly';
-  if (adhocHints.some((hint) => normalized.includes(hint))) return 'adhoc';
   return 'monthly';
 };

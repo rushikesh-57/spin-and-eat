@@ -32,11 +32,11 @@ const STATUS_LABELS: Record<GroceryStatus, string> = {
 };
 
 const STATUS_ORDER: GroceryStatus[] = ['available', 'low', 'out'];
-const FREQUENCY_ORDER: GroceryFrequency[] = ['weekly', 'monthly', 'adhoc'];
+const FREQUENCY_ORDER: GroceryFrequency[] = ['daily', 'weekly', 'monthly'];
 const FREQUENCY_LABELS: Record<GroceryFrequency, string> = {
+  daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
-  adhoc: 'Ad hoc',
 };
 const UNIT_OPTIONS = ['kg', 'g', 'ml', 'L', 'pcs', 'packs', 'jar', 'bunch', 'units'] as const;
 const FRIENDLY_UNIT_MAP = {

@@ -58,13 +58,29 @@ type AddIngredientDraft = {
 
 const AI_PRIORITY_CATEGORY_IDS = [
   'vegetables',
-  'herbs',
-  'grains',
-  'pulses',
-  'dairy',
-  'protein',
-  'spices',
+  'fruits',
+  'dal',
+  'dairy-daily-use',
+  'oils-cooking-essentials',
+  'snacks-quick-eats',
 ] as const;
+
+const LOADING_STEPS = {
+  ideas: [
+    'Checking inventory...',
+    'Sorting ingredients...',
+    'Matching dish patterns...',
+    'Refining suggestions...',
+    'Finalizing ideas...',
+  ],
+  ingredients: [
+    'Reading selected dish...',
+    'Finding pantry matches...',
+    'Estimating quantities...',
+    'Adjusting by servings...',
+    'Finalizing ingredients...',
+  ],
+} as const;
 
 const buildWheelItems = (suggestions: string[]): FoodItem[] =>
   suggestions.map((name) => ({
@@ -280,6 +296,12 @@ export function CookAtHome({
   const { rotation, isSpinning, selectedItem, spin } = useWheelSpin(wheelItems);
   const ideasCardRef = useRef<HTMLElement | null>(null);
   const wheelCardRef = useRef<HTMLElement | null>(null);
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0);
+  const loadingMode: 'ideas' | 'ingredients' | null = isAnalyzingDish
+    ? 'ingredients'
+    : isGeneratingMeals
+      ? 'ideas'
+      : null;
 
   const availableGroceries = useMemo(
     () => groceries.filter((item) => item.status !== 'out' && item.remainingQuantity > 0),
@@ -415,6 +437,21 @@ export function CookAtHome({
       wheel: guideTarget === 'wheel' ? true : prev.wheel,
     }));
   }, [guideTarget]);
+
+  useEffect(() => {
+    if (!loadingMode) {
+      setLoadingStepIndex(0);
+      return;
+    }
+
+    setLoadingStepIndex(0);
+    const stepCount = LOADING_STEPS[loadingMode].length;
+    const intervalId = window.setInterval(() => {
+      setLoadingStepIndex((prev) => (prev + 1) % stepCount);
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadingMode]);
 
   useEffect(() => {
     if (!guideTarget) {
@@ -765,11 +802,7 @@ export function CookAtHome({
                     onClick={handleGenerateMeals}
                     disabled={isGeneratingMeals}
                   >
-                    {isGeneratingMeals
-                      ? 'Generating...'
-                      : mealSuggestions.length > 0
-                        ? 'Generate more'
-                        : 'Generate'}
+                    {isGeneratingMeals ? 'Generating ideas...' : 'Generate ideas'}
                   </button>
                   <button
                     type="button"
@@ -1213,6 +1246,20 @@ export function CookAtHome({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {loadingMode ? (
+        <div
+          className={styles.generatingOverlay}
+          role="status"
+          aria-live="polite"
+          aria-label={loadingMode === 'ideas' ? 'Generating ideas' : 'Generating ingredients'}
+        >
+          <div className={styles.generatingCard}>
+            <span className={styles.generatingSpinner} aria-hidden="true" />
+            <p className={styles.generatingText}>{LOADING_STEPS[loadingMode][loadingStepIndex]}</p>
           </div>
         </div>
       ) : null}

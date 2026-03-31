@@ -17,6 +17,27 @@ type GroceryRow = {
   category_id?: string | null;
 };
 
+const isDailyCategory = (categoryId: string | null | undefined) => categoryId === 'dairy-daily-use';
+
+const toDbFrequency = (frequency: GroceryItem['frequency']) =>
+  frequency === 'daily' ? 'weekly' : frequency;
+
+const normalizeFrequency = (
+  value: string | null | undefined,
+  categoryId: string | null | undefined
+): GroceryItem['frequency'] => {
+  if (value === 'daily') {
+    return 'daily';
+  }
+  if (value === 'weekly') {
+    return isDailyCategory(categoryId) ? 'daily' : 'weekly';
+  }
+  if (value === 'monthly') {
+    return 'monthly';
+  }
+  return isDailyCategory(categoryId) ? 'daily' : 'monthly';
+};
+
 const mapRowToItem = (row: GroceryRow): GroceryItem => ({
   id: String(row.id),
   name: row.name,
@@ -24,7 +45,7 @@ const mapRowToItem = (row: GroceryRow): GroceryItem => ({
   remainingQuantity: Number(row.remaining_quantity) || 0,
   unit: row.unit,
   status: row.status,
-  frequency: row.frequency ?? 'monthly',
+  frequency: normalizeFrequency(row.frequency, row.category_id),
   categoryId: getCategoryId(row.name, row.category_id),
 });
 
@@ -112,7 +133,7 @@ export function useGroceryInventory(userId: string | null) {
           remaining_quantity: item.remainingQuantity,
           unit: item.unit,
           status: item.status,
-          frequency: item.frequency,
+          frequency: toDbFrequency(item.frequency),
           category_id: getCategoryId(item.name, item.categoryId),
         }));
 
@@ -192,7 +213,7 @@ export function useGroceryInventory(userId: string | null) {
           remaining_quantity: nextRemaining,
           unit: item.unit,
           status: item.status,
-          frequency: item.frequency,
+          frequency: toDbFrequency(item.frequency),
           category_id: getCategoryId(trimmedName, item.categoryId),
         })
         .select(
@@ -249,7 +270,7 @@ export function useGroceryInventory(userId: string | null) {
       if (typeof updates.remainingQuantity === 'number') payload.remaining_quantity = updates.remainingQuantity;
       if (typeof updates.unit === 'string') payload.unit = updates.unit;
       if (updates.status) payload.status = updates.status;
-      if (updates.frequency) payload.frequency = updates.frequency;
+      if (updates.frequency) payload.frequency = toDbFrequency(updates.frequency);
       if (typeof updates.categoryId === 'string' || updates.categoryId === undefined) {
         payload.category_id = updates.categoryId ?? null;
       }
@@ -374,7 +395,7 @@ export function useGroceryInventory(userId: string | null) {
       remaining_quantity: item.remainingQuantity,
       unit: item.unit,
       status: item.status,
-      frequency: item.frequency,
+      frequency: toDbFrequency(item.frequency),
       category_id: getCategoryId(item.name, item.categoryId),
     }));
 

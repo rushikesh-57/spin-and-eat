@@ -75,7 +75,7 @@ export interface DishIngredientAnalysis {
 }
 
 export type GroceryStatus = 'available' | 'low' | 'out';
-export type GroceryFrequency = 'weekly' | 'monthly' | 'adhoc';
+export type GroceryFrequency = 'daily' | 'weekly' | 'monthly';
 
 export const FOOD_CATEGORIES: Record<FoodCategory, string> = {
   breakfast: 'Breakfast',
