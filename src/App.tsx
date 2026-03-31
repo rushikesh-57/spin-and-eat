@@ -54,6 +54,7 @@ function App() {
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [shouldPromptProfileSetup, setShouldPromptProfileSetup] = useState(false);
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
@@ -119,6 +120,7 @@ function App() {
       setUserName(nextName);
       setUserId(nextUserId);
       setUserEmail(user?.email ?? null);
+      setShowSignInPrompt(!nextName);
       void hydrateUserProfile(nextUserId);
     });
 
@@ -138,12 +140,14 @@ function App() {
       void hydrateUserProfile(nextUserId);
       if (nextName) {
         setShowLogin(false);
+        setShowSignInPrompt(false);
         setAuthError(null);
         if (event === 'SIGNED_IN') {
           setShouldPromptProfileSetup(true);
         }
       } else {
         setActiveTab('spin');
+        setShowSignInPrompt(true);
         setShouldPromptProfileSetup(false);
       }
     });
@@ -273,6 +277,8 @@ function App() {
   }, [userId]);
 
   const showAuthPage = !isLoggedIn && (showLogin || activeTab !== 'spin');
+  const showSpinSignInPrompt =
+    activeTab === 'spin' && !isLoggedIn && !showAuthPage && showSignInPrompt;
 
   const handleTabChange = useCallback(
     (tab: 'spin' | 'kitchen' | 'cook' | 'custom' | 'profile') => {
@@ -438,7 +444,39 @@ function App() {
               </section>
             ) : null}
             {activeTab === 'spin' ? (
-              <div className={styles.spinLayout}>
+              <div className={styles.spinLayoutShell}>
+                {showSpinSignInPrompt ? (
+                  <section className={styles.signInOverlay} aria-label="Sign in prompt">
+                    <div className={styles.signInPromptCard}>
+                      <p className={styles.signInPromptEyebrow}>Unlock more features</p>
+                      <h3 className={styles.signInPromptTitle}>Sign in to access everything</h3>
+                      <p className={styles.signInPromptText}>
+                        Save your spin history, sync kitchen data, and personalize suggestions across devices.
+                      </p>
+                      <div className={styles.signInPromptActions}>
+                        <button
+                          type="button"
+                          className={styles.signInPromptPrimary}
+                          onClick={() => {
+                            setShowSignInPrompt(false);
+                            setShowLogin(true);
+                            setActiveTab('spin');
+                          }}
+                        >
+                          Sign in
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.signInPromptSecondary}
+                          onClick={() => setShowSignInPrompt(false)}
+                        >
+                          Maybe later
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+                ) : null}
+                <div className={styles.spinLayout}>
                 <section
                   className={styles.spinPanel}
                   aria-labelledby="wheel-heading"
@@ -512,6 +550,7 @@ function App() {
                 <section className={styles.historyPanel} aria-label="Recent spins">
                   <SpinHistory history={history.history} onClear={history.clearHistory} />
                 </section>
+                </div>
               </div>
             ) : activeTab === 'kitchen' ? (
               <section className={styles.kitchenPanel} aria-label="Kitchen inventory">

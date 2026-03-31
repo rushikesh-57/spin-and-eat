@@ -29,6 +29,83 @@
     'history';
 }
 
+.spinLayoutShell {
+  position: relative;
+}
+
+.signInOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(1rem, 8vh, 4.5rem) 1rem 1rem;
+  background: rgba(15, 23, 42, 0.42);
+  border-radius: 20px;
+  backdrop-filter: blur(2px);
+}
+
+.signInPromptCard {
+  width: min(100%, 430px);
+  border-radius: 18px;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
+  background: var(--color-surface);
+  padding: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.signInPromptEyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent-strong);
+}
+
+.signInPromptTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--color-text);
+}
+
+.signInPromptText {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.signInPromptActions {
+  margin-top: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.signInPromptPrimary,
+.signInPromptSecondary {
+  border-radius: 999px;
+  padding: 0.62rem 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.signInPromptPrimary {
+  border: none;
+  color: #fff;
+  background: var(--color-accent);
+}
+
+.signInPromptSecondary {
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  background: transparent;
+}
+
 .spinPanel {
   grid-area: wheel;
   background: var(--color-surface);
