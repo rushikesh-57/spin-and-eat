@@ -40,6 +40,20 @@ const sanitizeItems = (items: FoodItem[]): FoodItem[] =>
 const sampleFoodsForSource = (source: FoodSource) =>
   SAMPLE_FOODS.filter((item) => item.source === source);
 
+const ensureSampleCoveragePerSource = (items: FoodItem[]): FoodItem[] => {
+  const next = [...items];
+
+  for (const source of SOURCE_IDS) {
+    const hasItemsForSource = next.some((item) => item.source === source);
+    if (hasItemsForSource) {
+      continue;
+    }
+    next.push(...sampleFoodsForSource(source));
+  }
+
+  return next;
+};
+
 const buildDefaultIncludedIds = (items: FoodItem[]): string[] =>
   SOURCE_IDS.flatMap((source) =>
     items
@@ -74,7 +88,7 @@ const normalizeIncludedIds = (items: FoodItem[], previousIds: string[] | null): 
 
 export function useFoodItems(userId: string | null) {
   const [items, setItems] = useState<FoodItem[]>(() =>
-    sanitizeItems(loadFoodItems(SAMPLE_FOODS))
+    ensureSampleCoveragePerSource(sanitizeItems(loadFoodItems(SAMPLE_FOODS)))
   );
   const [activeCategories, setActiveCategoriesState] = useState<FoodCategory[] | null>(() =>
     sanitizeCategories(loadActiveCategories())
@@ -121,7 +135,7 @@ export function useFoodItems(userId: string | null) {
 
     const loadUserFoods = async () => {
       if (!userId) {
-        setItems(sanitizeItems(loadFoodItems(SAMPLE_FOODS)));
+        setItems(ensureSampleCoveragePerSource(sanitizeItems(loadFoodItems(SAMPLE_FOODS))));
         setError(null);
         return;
       }

@@ -85,6 +85,6 @@ export const FOOD_CATEGORIES: Record<FoodCategory, string> = {
 } as const;
 
 export const FOOD_SOURCES: Record<FoodSource, string> = {
-  outside: 'Eat outside / order',
+  outside: 'Order',
   home: 'Cook at home',
 } as const;

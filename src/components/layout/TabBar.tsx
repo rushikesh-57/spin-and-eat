@@ -39,7 +39,7 @@ export function TabBar({ activeTab, onTabChange }: TabBarProps) {
             <path d="M7 7V5h10v2" fill="none" stroke="currentColor" strokeWidth="2" />
           </svg>
         </span>
-        <span className={styles.tabLabel}>Kitchen</span>
+        <span className={styles.tabLabel}>Grocery</span>
       </button>
       <button
         type="button"

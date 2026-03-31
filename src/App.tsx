@@ -218,6 +218,12 @@ function App() {
   }, [activeTab, isLoggedIn]);
 
   useEffect(() => {
+    if (food.activeSource !== 'outside') {
+      food.setActiveSource('outside');
+    }
+  }, [food.activeSource, food.setActiveSource]);
+
+  useEffect(() => {
     if (isSpinning) {
       setShowMobileResult(false);
       return;
@@ -537,8 +543,6 @@ function App() {
                     <FoodManager
                       items={food.items}
                       includedFoodIds={food.includedFoodIds}
-                      activeSource={food.activeSource}
-                      onSourceChange={food.setActiveSource}
                       onToggleIncluded={food.toggleIncluded}
                       onAdd={food.addItem}
                       onClearAll={() => food.clearBySource(food.activeSource)}

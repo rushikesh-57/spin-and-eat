@@ -86,7 +86,7 @@ export function AppHeader({
             className={activeTab === 'kitchen' ? styles.navButtonActive : styles.navButton}
             onClick={() => onTabChange('kitchen')}
           >
-            Kitchen
+            Grocery
           </button>
           <button
             type="button"

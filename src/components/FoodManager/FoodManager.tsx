@@ -1,16 +1,13 @@
 import { useState, useCallback } from 'react';
-import type { FoodItem, FoodCategory, FoodSource } from '../../types';
-import { FOOD_SOURCES } from '../../types';
+import type { FoodItem, FoodCategory } from '../../types';
 import { useAlertDialog } from '../layout/AlertDialogProvider';
 import styles from './FoodManager.module.css';
 
 interface FoodManagerProps {
   items: FoodItem[];
   includedFoodIds: string[];
-  activeSource: FoodSource;
-  onSourceChange: (source: FoodSource) => void;
   onToggleIncluded: (id: string) => void;
-  onAdd: (name: string, category: FoodCategory, source: FoodSource) => void;
+  onAdd: (name: string, category: FoodCategory, source: 'outside') => void;
   onClearAll: () => void;
   onReset: () => void;
 }
@@ -20,8 +17,6 @@ const DEFAULT_FOOD_CATEGORY: FoodCategory = 'dinner';
 export function FoodManager({
   items,
   includedFoodIds,
-  activeSource,
-  onSourceChange,
   onToggleIncluded,
   onAdd,
   onClearAll,
@@ -32,7 +27,7 @@ export function FoodManager({
   const { confirm } = useAlertDialog();
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
-  const sourceItems = items.filter((item) => item.source === activeSource);
+  const sourceItems = items.filter((item) => item.source === 'outside');
   const filteredItems = normalizedSearch
     ? sourceItems.filter((item) => item.name.toLowerCase().includes(normalizedSearch))
     : sourceItems;
@@ -42,32 +37,15 @@ export function FoodManager({
       e.preventDefault();
       const name = newName.trim();
       if (!name) return;
-      onAdd(name, DEFAULT_FOOD_CATEGORY, activeSource);
+      onAdd(name, DEFAULT_FOOD_CATEGORY, 'outside');
       setNewName('');
     },
-    [newName, activeSource, onAdd]
+    [newName, onAdd]
   );
 
   return (
     <section className={styles.wrapper} aria-label="Manage food items">
       <div className={styles.content}>
-        <div className={styles.menuTabs} role="tablist" aria-label="Food plan">
-          {(Object.keys(FOOD_SOURCES) as FoodSource[]).map((source) => (
-            <button
-              key={source}
-              type="button"
-              role="tab"
-              aria-selected={activeSource === source}
-              className={`${styles.menuButton} ${
-                activeSource === source ? styles.menuButtonActive : ''
-              }`}
-              onClick={() => onSourceChange(source)}
-            >
-              {FOOD_SOURCES[source]}
-            </button>
-          ))}
-        </div>
-
         <div className={styles.searchRow}>
           <input
             type="text"
