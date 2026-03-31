@@ -17,7 +17,7 @@ import { analyzeDishGroceries } from '../../utils/dishGroceries';
 import { generateId } from '../../utils/id';
 import { formatQuantity, resolveRequirementQuantityForInventory } from '../../utils/ingredientUnits';
 import { CATEGORY_SECTIONS, getCategoryId, getCategoryTitle } from '../../utils/groceryCategories';
-import { playSpinCompleteSound } from '../../utils/sound';
+import { playSpinCompleteSound, playSpinStartSound } from '../../utils/sound';
 import styles from './CookAtHome.module.css';
 
 type Props = {
@@ -619,6 +619,7 @@ export function CookAtHome({
   };
 
   const handleSpin = () => {
+    playSpinStartSound();
     spin(() => {
       playSpinCompleteSound();
     });

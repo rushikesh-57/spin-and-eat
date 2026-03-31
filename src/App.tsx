@@ -16,7 +16,7 @@ import { AlertDialogProvider } from './components/layout/AlertDialogProvider';
 import { TabBar } from './components/layout/TabBar';
 import { LoginScreen } from './components/layout/LoginScreen';
 import { ProfilePanel } from './components/layout/ProfilePanel';
-import { playSpinCompleteSound } from './utils/sound';
+import { playSpinCompleteSound, playSpinStartSound } from './utils/sound';
 import { usePwaInstall } from './hooks/usePwaInstall';
 import {
   DEFAULT_USER_PROFILE,
@@ -209,6 +209,7 @@ function App() {
   );
 
   const handleSpin = useCallback(() => {
+    playSpinStartSound();
     spin((item) => {
       history.addToHistory({
         foodName: item.name,

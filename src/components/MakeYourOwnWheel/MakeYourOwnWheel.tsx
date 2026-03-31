@@ -4,7 +4,7 @@ import { SpinButton } from '../SpinButton';
 import { ResultDisplay } from '../ResultDisplay';
 import { useWheelSpin } from '../../hooks/useWheelSpin';
 import { useCustomWheelItems } from '../../hooks/useCustomWheelItems';
-import { playSpinCompleteSound } from '../../utils/sound';
+import { playSpinCompleteSound, playSpinStartSound } from '../../utils/sound';
 import { useAlertDialog } from '../layout/AlertDialogProvider';
 import styles from './MakeYourOwnWheel.module.css';
 
@@ -95,6 +95,7 @@ export function MakeYourOwnWheel({ userId, guideTarget = null }: MakeYourOwnWhee
   );
 
   const handleSpin = useCallback(() => {
+    playSpinStartSound();
     spin(() => {
       playSpinCompleteSound();
     });
